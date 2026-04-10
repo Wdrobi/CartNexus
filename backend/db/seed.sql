@@ -1,0 +1,151 @@
+USE cartnexus;
+
+-- Reset catalog (keeps users). Run after schema exists.
+DELETE FROM products;
+DELETE FROM categories;
+DELETE FROM brands;
+ALTER TABLE categories AUTO_INCREMENT = 1;
+ALTER TABLE brands AUTO_INCREMENT = 1;
+ALTER TABLE products AUTO_INCREMENT = 1;
+
+-- Admin (unchanged password: admin123)
+INSERT INTO users (email, password_hash, role, name) VALUES
+  (
+    'admin@cartnexus.local',
+    '$2b$10$Mxyam4tHwog2ckVdLdUD9.61.LUOfs8WtKUXU.Ytauzz11GW2/lDa',
+    'admin',
+    'Admin'
+  )
+  ON DUPLICATE KEY UPDATE email = email;
+
+INSERT INTO categories (name_bn, name_en, slug, sort_order) VALUES
+  ('টি-শার্ট ও পোলো', 'T-Shirts & Polos', 't-shirts-polos', 1),
+  ('শার্ট', 'Shirts', 'shirts', 2),
+  ('প্যান্ট ও জিন্স', 'Pants & Jeans', 'pants-jeans', 3),
+  ('জ্যাকেট ও আউটারওয়্যার', 'Outerwear & Jackets', 'outerwear', 4),
+  ('অ্যাক্টিভওয়্যার', 'Activewear', 'activewear', 5),
+  ('জুতা', 'Footwear', 'footwear', 6),
+  ('আন্ডারওয়্যার ও মোজা', 'Underwear & Socks', 'underwear-socks', 7),
+  ('ঘড়ি ও অ্যাক্সেসারিজ', 'Watches & Accessories', 'watches-accessories', 8),
+  ('ব্যাগ ও ওয়ালেট', 'Bags & Wallets', 'bags-wallets', 9),
+  ('গ্রুমিং ও স্কিনকেয়ার', 'Grooming & Skincare', 'grooming-skincare', 10);
+
+INSERT INTO brands (name_bn, name_en, slug, sort_order) VALUES
+  ('নেক্সাস লাইন', 'Nexus Line', 'nexus-line', 1),
+  ('অ্যাটলাস অ্যান্ড কো', 'Atlas & Co', 'atlas-co', 2),
+  ('নর্থবাউন্ড', 'Northbound', 'northbound', 3),
+  ('আরবান থ্রেড', 'Urban Thread', 'urban-thread', 4),
+  ('মেরিডিয়ান', 'Meridian', 'meridian', 5),
+  ('আয়রন অ্যান্ড ওক', 'Iron & Oak', 'iron-oak', 6),
+  ('স্টুডিও ফর্ম', 'Studio Form', 'studio-form', 7),
+  ('প্যাসিফিক রো', 'Pacific Row', 'pacific-row', 8),
+  ('ফোর্জ অ্যাথলেটিক', 'Forge Athletic', 'forge-athletic', 9),
+  ('লেজার অ্যান্ড সন্স', 'Ledger & Sons', 'ledger-sons', 10);
+
+INSERT INTO products (
+  category_id, name_bn, name_en, slug,
+  description_bn, description_en,
+  price, compare_at_price, image_url, stock, is_active
+) VALUES
+(1, 'এসেনশিয়াল ক্রু নেক টি — সাদা', 'Essential Crew Neck Tee — White', 't-shirts-polos-p1', 'প্রিমিয়াম কটন, দৈনন্দিন ফিট।', 'Premium cotton, everyday fit.', 499.00, 558.88, 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80', 15, 1),
+(1, 'ক্লাসিক পোলো — কালো', 'Classic Polo — Black', 't-shirts-polos-p2', 'পোলো কলার, ব্রিদেবল পিকে।', 'Sharp collar, breathable pique.', 622.00, NULL, 'https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?auto=format&fit=crop&w=800&q=80', 20, 1),
+(1, 'স্ট্রাইপ পোলো — নেভি', 'Striped Polo — Navy', 't-shirts-polos-p3', 'উইকএন্ড ক্যাজুয়াল স্টাইল।', 'Weekend-ready casual style.', 745.00, NULL, 'https://images.unsplash.com/photo-1622445275751-13fa261cba76?auto=format&fit=crop&w=800&q=80', 25, 1),
+(1, 'লংলাইন টি — চারকোল', 'Longline Tee — Charcoal', 't-shirts-polos-p4', 'আধুনিক কাট, নরম জার্সি।', 'Modern silhouette, soft jersey.', 718.00, NULL, 'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?auto=format&fit=crop&w=800&q=80', 30, 1),
+(1, 'হেনলি শার্ট — অলিভ', 'Henley Shirt — Olive', 't-shirts-polos-p5', 'তিন বাটন, স্লিম ফিট।', 'Three-button placket, slim fit.', 841.00, 941.92, 'https://images.unsplash.com/photo-1503341504253-dff4815485f1?auto=format&fit=crop&w=800&q=80', 35, 1),
+(1, 'পকেট টি — স্টোন', 'Pocket Tee — Stone', 't-shirts-polos-p6', 'মিনিমাল পকেট ডিটেইল।', 'Minimal chest pocket detail.', 964.00, NULL, 'https://images.unsplash.com/photo-1593032485979-d2e701b7c877?auto=format&fit=crop&w=800&q=80', 40, 1),
+(1, 'পারফরম্যান্স পোলো — গ্রে', 'Performance Polo — Gray', 't-shirts-polos-p7', 'ঘাম শোষণ, গরমে আরাম।', 'Moisture-wicking for warm days.', 937.00, NULL, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80', 45, 1),
+(1, 'ওভারসাইজড টি — ব্ল্যাক', 'Oversized Tee — Black', 't-shirts-polos-p8', 'স্ট্রিটওয়্যার রিল্যাক্সড ফিট।', 'Streetwear relaxed drape.', 1060.00, NULL, 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=800&q=80', 50, 1),
+(1, 'ভি-নেক টি — সাদা', 'V-Neck Tee — White', 't-shirts-polos-p9', 'লেয়ার করতে সুবিধাজনক।', 'Layer-friendly neckline.', 1183.00, 1324.96, 'https://images.unsplash.com/photo-1600185365926-3a5ce2bd5b5c?auto=format&fit=crop&w=800&q=80', 55, 1),
+(1, 'টিপড কলার পোলো', 'Tipped Collar Polo — Wine', 't-shirts-polos-p10', 'কনট্রাস্ট ট্রিম, স্মার্ট ক্যাজুয়াল।', 'Contrast trim, smart casual.', 1156.00, NULL, 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80', 60, 1),
+(2, 'অক্সফোর্ড বাটন-ডাউন — স্কাই', 'Oxford Button-Down — Sky', 'shirts-p1', 'অফিস থেকে ইভনিং—ক্রিস্প শার্ট।', 'Crisp office-to-evening shirt.', 536.00, 600.32, 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=800&q=80', 16, 1),
+(2, 'লিনেন ব্লেন্ড শার্ট — বেইজ', 'Linen Blend Shirt — Beige', 'shirts-p2', 'হালকা গ্রীষ্মের শার্ট।', 'Lightweight summer staple.', 659.00, NULL, 'https://images.unsplash.com/photo-1489987707025-afc232fdf7d8?auto=format&fit=crop&w=800&q=80', 21, 1),
+(2, 'চেক ফ্লানেল শার্ট', 'Check Flannel Shirt', 'shirts-p3', 'নরম ব্রাশড কটন।', 'Soft brushed cotton.', 782.00, NULL, 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80', 26, 1),
+(2, 'ডেনিম শার্ট — ইন্ডিগো', 'Denim Shirt — Indigo', 'shirts-p4', 'টির ওপর বা একা পরুন।', 'Layer over tees or wear solo.', 755.00, NULL, 'https://images.unsplash.com/photo-1490114538077-275a67f0d028?auto=format&fit=crop&w=800&q=80', 31, 1),
+(2, 'স্লিম ফিট ড্রেস শার্ট — হোয়াইট', 'Slim Fit Dress Shirt — White', 'shirts-p5', 'সহজে ইস্ত্রি।', 'Sharp collar, easy iron.', 878.00, 983.36, 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&w=800&q=80', 36, 1),
+(2, 'চামব্রে শার্ট — ব্লু', 'Chambray Shirt — Blue', 'shirts-p6', 'সব মৌসুমে ক্যাজুয়াল।', 'Casual texture, all-season.', 1001.00, NULL, 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80', 41, 1),
+(2, 'শর্ট স্লিভ ক্যাজুয়াল শার্ট', 'Short Sleeve Casual Shirt', 'shirts-p7', 'ছুটি ও উইকএন্ড।', 'Vacation and weekend wear.', 974.00, NULL, 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=800&q=80', 46, 1),
+(2, 'স্ট্রাইপ ড্রেস শার্ট — নেভি', 'Striped Dress Shirt — Navy', 'shirts-p8', 'ফরমাল স্ট্রাইপ।', 'Boardroom-ready stripes.', 1097.00, NULL, 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=800&q=80', 51, 1),
+(2, 'কর্ডুরয় ওভারশার্ট', 'Corduroy Overshirt', 'shirts-p9', 'ঠান্ডায় টেক্সচার্ড লেয়ার।', 'Textured layer for cool days.', 1220.00, 1366.40, 'https://images.unsplash.com/photo-1578932750294-f5075e85f44a?auto=format&fit=crop&w=800&q=80', 56, 1),
+(2, 'ব্যান্ড কলার শার্ট — ব্ল্যাক', 'Band Collar Shirt — Black', 'shirts-p10', 'মিনিমাল কলার, মডার্ন লুক।', 'Minimal collar, modern edge.', 1193.00, NULL, 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80', 61, 1),
+(3, 'স্লিম ফিট চিনো — খাকি', 'Slim Fit Chinos — Khaki', 'pants-jeans-p1', 'স্ট্রেচ কটন।', 'Stretch cotton, office ready.', 573.00, 641.76, 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=800&q=80', 17, 1),
+(3, 'স্ট্রেইট লেগ জিন্স — ইন্ডিগো', 'Straight Leg Jeans — Indigo', 'pants-jeans-p2', 'ক্লাসিক ফাইভ-পকেট।', 'Classic five-pocket denim.', 696.00, NULL, 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=800&q=80', 22, 1),
+(3, 'টেপার্ড ট্রাউজার — চারকোল', 'Tapered Trousers — Charcoal', 'pants-jeans-p3', 'টেইলার্ড অ্যাঙ্কল ফিট।', 'Tailored ankle fit.', 819.00, NULL, 'https://images.unsplash.com/photo-1522312346377-d89e42dc764e?auto=format&fit=crop&w=800&q=80', 27, 1),
+(3, 'কার্গো প্যান্ট — অলিভ', 'Cargo Pants — Olive', 'pants-jeans-p4', 'টেকসই টুইল।', 'Utility pockets, durable twill.', 792.00, NULL, 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80', 32, 1),
+(3, 'জগার্স — ব্ল্যাক', 'Joggers — Black', 'pants-jeans-p5', 'নরম ফ্লিস ভিতরে।', 'Tapered cuffs, soft fleece inside.', 915.00, 1024.80, 'https://images.unsplash.com/photo-1622434641406-158d48b67cb0?auto=format&fit=crop&w=800&q=80', 37, 1),
+(3, 'লাইটওয়েট ট্রাউজার — নেভি', 'Lightweight Trousers — Navy', 'pants-jeans-p6', 'ট্রাভেল ফ্রেন্ডলি।', 'Travel-friendly wrinkle resist.', 1038.00, NULL, 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=800&q=80', 42, 1),
+(3, 'রিল্যাক্সড ফিট জিন্স — লাইট ব্লু', 'Relaxed Fit Jeans — Light Blue', 'pants-jeans-p7', 'থাই ও হাঁটুতে আরাম।', 'Room through thigh and knee.', 1011.00, NULL, 'https://images.unsplash.com/photo-1611923134239-b9be5816e23c?auto=format&fit=crop&w=800&q=80', 47, 1),
+(3, 'ড্রেস প্যান্ট — ব্ল্যাক', 'Dress Pants — Black', 'pants-jeans-p8', 'ফ্ল্যাট ফ্রন্ট।', 'Flat front, sharp crease.', 1134.00, NULL, 'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?auto=format&fit=crop&w=800&q=80', 52, 1),
+(3, 'শর্টস — স্টোন', 'Chino Shorts — Stone', 'pants-jeans-p9', 'গ্রীষ্মের শর্টস।', '9-inch inseam, summer staple.', 1257.00, 1407.84, 'https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?auto=format&fit=crop&w=800&q=80', 57, 1),
+(3, 'ওয়ার্কপ্যান্ট — ক্যামেল', 'Work Pants — Camel', 'pants-jeans-p10', 'মজবুত সিম।', 'Reinforced seams, daily grind.', 1230.00, NULL, 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80', 62, 1),
+(4, 'বোম্বার জ্যাকেট — নেভি', 'Bomber Jacket — Navy', 'outerwear-p1', 'হালকা নাইলন শেল।', 'Lightweight nylon shell.', 610.00, 683.20, 'https://images.unsplash.com/photo-1620799140408-ed534d426b47?auto=format&fit=crop&w=800&q=80', 18, 1),
+(4, 'ডেনিম জ্যাকেট — মিড ওয়াশ', 'Denim Jacket — Mid Wash', 'outerwear-p2', 'লেয়ারিং অপরিহার্য।', 'Layering essential.', 733.00, NULL, 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=800&q=80', 23, 1),
+(4, 'পাফার ভেস্ট — ব্ল্যাক', 'Puffer Vest — Black', 'outerwear-p3', 'গরম, হালকা।', 'Core warmth without bulk.', 856.00, NULL, 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?auto=format&fit=crop&w=800&q=80', 28, 1),
+(4, 'ওয়ুল ব্লেন্ড কোট — চারকোল', 'Wool Blend Coat — Charcoal', 'outerwear-p4', 'ঠান্ডায় স্মার্ট লুক।', 'Cold-weather sophistication.', 829.00, NULL, 'https://images.unsplash.com/photo-1556906781-9a412961c28c?auto=format&fit=crop&w=800&q=80', 33, 1),
+(4, 'হুডিড উইন্ডব্রেকার', 'Hooded Windbreaker', 'outerwear-p5', 'বৃষ্টির জন্য প্যাকেবল।', 'Packable rain shield.', 952.00, 1066.24, 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=800&q=80', 38, 1),
+(4, 'শের্পা লাইন্ড জ্যাকেট', 'Sherpa Lined Jacket', 'outerwear-p6', 'ভিতরে আরামদায়ক ফ্লিস।', 'Cozy fleece interior.', 1075.00, NULL, 'https://images.unsplash.com/photo-1556229010-6c3f2c9ca5f8?auto=format&fit=crop&w=800&q=80', 43, 1),
+(4, 'ট্রাকার জ্যাকেট — ব্রাউন', 'Trucker Jacket — Brown', 'outerwear-p7', 'ক্লাসিক ওয়ার্কওয়্যার।', 'Heritage workwear vibe.', 1048.00, NULL, 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=800&q=80', 48, 1),
+(4, 'টেকনিক্যাল শেল জ্যাকেট', 'Technical Shell Jacket', 'outerwear-p8', 'ওয়াটারপ্রুফ, ব্রিদেবল।', 'Breathable waterproof layer.', 1171.00, NULL, 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80', 53, 1),
+(4, 'কোয়িল্টেড লাইনার জ্যাকেট', 'Quilted Liner Jacket', 'outerwear-p9', 'পাতলা ইনসুলেশন।', 'Slim profile insulation.', 1294.00, 1449.28, 'https://images.unsplash.com/photo-1610397648934-fb5731f0f29b?auto=format&fit=crop&w=800&q=80', 58, 1),
+(4, 'ফ্লিস জ্যাকেট — গ্রে', 'Fleece Jacket — Gray', 'outerwear-p10', 'আউটডোর ও কমিউট।', 'Outdoor and commute friendly.', 1267.00, NULL, 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=800&q=80', 63, 1),
+(5, 'পারফরম্যান্স টি — ব্ল্যাক', 'Performance Tee — Black', 'activewear-p1', 'জিম থেকে স্ট্রিট।', 'Gym-to-street quick dry.', 647.00, 724.64, 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80', 19, 1),
+(5, 'রানিং শর্টস — নেভি', 'Running Shorts — Navy', 'activewear-p2', 'জিপ পকেট।', 'Built-in liner, zip pocket.', 770.00, NULL, 'https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?auto=format&fit=crop&w=800&q=80', 24, 1),
+(5, 'ট্র্যাক প্যান্ট — গ্রে', 'Track Pants — Gray', 'activewear-p3', 'সাইড স্ট্রাইপ।', 'Tapered legs, side stripes.', 893.00, NULL, 'https://images.unsplash.com/photo-1622445275751-13fa261cba76?auto=format&fit=crop&w=800&q=80', 29, 1),
+(5, 'ট্রেনিং হুডি — চারকোল', 'Training Hoodie — Charcoal', 'activewear-p4', 'মিডওয়েট ফ্লিস।', 'Midweight fleece.', 866.00, NULL, 'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?auto=format&fit=crop&w=800&q=80', 34, 1),
+(5, 'কম্প্রেশন লেগিং', 'Compression Leggings', 'activewear-p5', 'বেস লেয়ার।', 'Muscle support base layer.', 989.00, 1107.68, 'https://images.unsplash.com/photo-1503341504253-dff4815485f1?auto=format&fit=crop&w=800&q=80', 39, 1),
+(5, 'স্পোর্টস পোলো — হোয়াইট', 'Sports Polo — White', 'activewear-p6', 'গল্ফ ও টেনিস।', 'Golf and tennis ready.', 1112.00, NULL, 'https://images.unsplash.com/photo-1593032485979-d2e701b7c877?auto=format&fit=crop&w=800&q=80', 44, 1),
+(5, 'হাইকিং শর্টস — অলিভ', 'Hiking Shorts — Olive', 'activewear-p7', 'রিপস্টপ ফ্যাব্রিক।', 'Durable ripstop fabric.', 1085.00, NULL, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80', 49, 1),
+(5, 'ময়েশ্চার উইকিং ট্যাঙ্ক', 'Moisture-Wicking Tank', 'activewear-p8', 'জিমে হালকা।', 'Hot workout days.', 1208.00, NULL, 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=800&q=80', 54, 1),
+(5, 'অ্যাথলেটিক জ্যাকেট', 'Athletic Jacket', 'activewear-p9', 'ওয়ার্ম-আপ লেয়ার।', 'Warm-up and cool-down layer.', 1331.00, 1490.72, 'https://images.unsplash.com/photo-1600185365926-3a5ce2bd5b5c?auto=format&fit=crop&w=800&q=80', 59, 1),
+(5, 'ইয়োগা জগার্স', 'Yoga Joggers', 'activewear-p10', 'স্ট্রেচ আরাম।', 'Four-way stretch comfort.', 1304.00, NULL, 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80', 64, 1),
+(6, 'ক্লাসিক স্নিকার — হোয়াইট', 'Classic Sneakers — White', 'footwear-p1', 'লেদার আপার।', 'Leather upper, cushioned sole.', 684.00, 766.08, 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=800&q=80', 20, 1),
+(6, 'রানিং শু — ব্ল্যাক/রেড', 'Running Shoes — Black/Red', 'footwear-p2', 'ফোম মিডসোল।', 'Responsive foam midsole.', 807.00, NULL, 'https://images.unsplash.com/photo-1489987707025-afc232fdf7d8?auto=format&fit=crop&w=800&q=80', 25, 1),
+(6, 'চেলসি বুট — ব্রাউন', 'Chelsea Boots — Brown', 'footwear-p3', 'ইলাস্টিক গাসেট।', 'Elastic gusset, sleek profile.', 930.00, NULL, 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80', 30, 1),
+(6, 'লোফার — নেভি সুয়েড', 'Loafer — Navy Suede', 'footwear-p4', 'স্লিপ-অন।', 'Handsome slip-on dress casual.', 903.00, NULL, 'https://images.unsplash.com/photo-1490114538077-275a67f0d028?auto=format&fit=crop&w=800&q=80', 35, 1),
+(6, 'হাইটপ স্নিকার — ক্যামেল', 'High-Top Sneaker — Camel', 'footwear-p5', 'স্ট্রিট স্টাইল।', 'Street and weekend wear.', 1026.00, 1149.12, 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&w=800&q=80', 40, 1),
+(6, 'ডেসার্ট চুক্কা বুট', 'Desert Chukka Boot', 'footwear-p6', 'সুয়েড।', 'Suede, versatile neutral tone.', 1149.00, NULL, 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80', 45, 1),
+(6, 'অ্যাথলেটিক স্লাইড', 'Athletic Slides', 'footwear-p7', 'জিমের পর আরাম।', 'Post-gym recovery comfort.', 1122.00, NULL, 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=800&q=80', 50, 1),
+(6, 'ড্রেস শু — ব্ল্যাক', 'Dress Shoes — Black', 'footwear-p8', 'অক্সফোর্ড ফরমাল।', 'Oxford toe cap formal.', 1245.00, NULL, 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=800&q=80', 55, 1),
+(6, 'ট্রেইল হাইকিং শু', 'Trail Hiking Shoe', 'footwear-p9', 'গ্রিপ আউটসোল।', 'Grip outsole, ankle support.', 1368.00, 1532.16, 'https://images.unsplash.com/photo-1578932750294-f5075e85f44a?auto=format&fit=crop&w=800&q=80', 60, 1),
+(6, 'এসপেড্রিল — বেইজ', 'Espadrille — Beige', 'footwear-p10', 'গ্রীষ্মের ক্যাজুয়াল।', 'Summer breathable casual.', 1341.00, NULL, 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80', 65, 1),
+(7, 'কটন বক্সার ব্রিফ — মাল্টি প্যাক', 'Cotton Boxer Briefs — Multi', 'underwear-socks-p1', '৩-প্যাক।', 'Soft waistband, 3-pack.', 721.00, 807.52, 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=800&q=80', 21, 1),
+(7, 'আন্ডারশার্ট — হোয়াইট', 'Undershirt — White', 'underwear-socks-p2', 'শার্টের নিচে লেয়ার।', 'V-neck layer under shirts.', 844.00, NULL, 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=800&q=80', 26, 1),
+(7, 'অ্যাথলেটিক সকস — ব্ল্যাক', 'Athletic Socks — Black', 'underwear-socks-p3', 'হিল ও টো কুশন।', 'Cushioned heel and toe.', 967.00, NULL, 'https://images.unsplash.com/photo-1522312346377-d89e42dc764e?auto=format&fit=crop&w=800&q=80', 31, 1),
+(7, 'ড্রেস সকস — নেভি', 'Dress Socks — Navy', 'underwear-socks-p4', 'মেরিনো ব্লেন্ড।', 'Fine merino blend.', 940.00, NULL, 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80', 36, 1),
+(7, 'নো-শো সকস — গ্রে', 'No-Show Socks — Gray', 'underwear-socks-p5', 'লোফারের সাথে।', 'Invisible with loafers.', 1063.00, 1190.56, 'https://images.unsplash.com/photo-1622434641406-158d48b67cb0?auto=format&fit=crop&w=800&q=80', 41, 1),
+(7, 'থার্মাল লেগgings', 'Thermal Long Johns', 'underwear-socks-p6', 'ঠান্ডার বেস লেয়ার।', 'Cold weather base layer.', 1186.00, NULL, 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=800&q=80', 46, 1),
+(7, 'মাইক্রোফাইবার সকস সেট', 'Microfiber Sock Set', 'underwear-socks-p7', '৫-প্যাক।', 'Odor control, 5-pack.', 1159.00, NULL, 'https://images.unsplash.com/photo-1611923134239-b9be5816e23c?auto=format&fit=crop&w=800&q=80', 51, 1),
+(7, 'কম্প্রেশন সকস', 'Compression Socks', 'underwear-socks-p8', 'ট্রাভেল সাপোর্ট।', 'Travel and recovery support.', 1282.00, NULL, 'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?auto=format&fit=crop&w=800&q=80', 56, 1),
+(7, 'বাম্বু ব্লেন্ড বক্সার', 'Bamboo Blend Boxer', 'underwear-socks-p9', 'নরম ও ঠান্ডা।', 'Naturally soft and cool.', 1405.00, 1573.60, 'https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?auto=format&fit=crop&w=800&q=80', 61, 1),
+(7, 'ওয়ার্ক বুট সকস', 'Work Boot Socks', 'underwear-socks-p10', 'বেশি প্যাডিং।', 'Extra padding for long shifts.', 1378.00, NULL, 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80', 66, 1),
+(8, 'মিনিমাল কোয়ার্টজ ওয়াচ — সিলভার', 'Minimal Quartz Watch — Silver', 'watches-accessories-p1', 'লেদার স্ট্র্যাপ।', 'Slim case, leather strap.', 758.00, 848.96, 'https://images.unsplash.com/photo-1620799140408-ed534d426b47?auto=format&fit=crop&w=800&q=80', 22, 1),
+(8, 'ক্রোনোগ্রাফ স্পোর্টস ওয়াচ', 'Chronograph Sports Watch', 'watches-accessories-p2', 'ট্যাকিমিটার।', 'Tachymeter bezel detail.', 881.00, NULL, 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=800&q=80', 27, 1),
+(8, 'লেদার ব্রেসলেট — ব্রাউন', 'Leather Bracelet — Brown', 'watches-accessories-p3', 'স্ট্যাকেবল।', 'Stackable men''s accessory.', 1004.00, NULL, 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?auto=format&fit=crop&w=800&q=80', 32, 1),
+(8, 'স্টিল চেইন নেকলেস', 'Steel Chain Necklace', 'watches-accessories-p4', 'এভরিডে মেটাল।', 'Subtle everyday metal tone.', 977.00, NULL, 'https://images.unsplash.com/photo-1556906781-9a412961c28c?auto=format&fit=crop&w=800&q=80', 37, 1),
+(8, 'পোলারাইজড সানগ্লাস — ব্ল্যাক', 'Polarized Sunglasses — Black', 'watches-accessories-p5', 'UV400।', 'UV400 protection.', 1100.00, 1232.00, 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=800&q=80', 42, 1),
+(8, 'টাই ক্লিপ সেট — সিলভার', 'Tie Clip Set — Silver', 'watches-accessories-p6', 'ম্যাট ফিনিশ।', 'Matte finish gift box.', 1223.00, NULL, 'https://images.unsplash.com/photo-1556229010-6c3f2c9ca5f8?auto=format&fit=crop&w=800&q=80', 47, 1),
+(8, 'কাফলিংকস — অনিক্স', 'Cufflinks — Onyx', 'watches-accessories-p7', 'ফরমাল হার্ডওয়্যার।', 'Formal shirt hardware.', 1196.00, NULL, 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=800&q=80', 52, 1),
+(8, 'বিন টুঁড়ি ক্যাপ — নেভি', 'Wool Beanie — Navy', 'watches-accessories-p8', 'শীতে গরম।', 'Winter warmth.', 1319.00, NULL, 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80', 57, 1),
+(8, 'লেদার বেল্ট — ব্ল্যাক', 'Leather Belt — Black', 'watches-accessories-p9', 'রিভার্সিবল।', 'Reversible black/brown.', 1442.00, 1615.04, 'https://images.unsplash.com/photo-1610397648934-fb5731f0f29b?auto=format&fit=crop&w=800&q=80', 62, 1),
+(8, 'স্কার্ফ — গ্রে', 'Wool Scarf — Gray', 'watches-accessories-p10', 'নরম স্কার্ফ।', 'Soft neck wrap.', 1415.00, NULL, 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=800&q=80', 67, 1),
+(9, 'লেদার ব্যাকপ্যাক — চারকোল', 'Leather Backpack — Charcoal', 'bags-wallets-p1', '১৫" ল্যাপটপ স্লিভ।', 'Laptop sleeve 15-inch.', 795.00, 890.40, 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80', 23, 1),
+(9, 'ক্রসবডি ব্যাগ — ব্ল্যাক', 'Crossbody Bag — Black', 'bags-wallets-p2', 'কমপ্যাক্ট ক্যারি।', 'Compact daily carry.', 918.00, NULL, 'https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?auto=format&fit=crop&w=800&q=80', 28, 1),
+(9, 'ট্রাভেল ডাফেল — নেভি', 'Travel Duffel — Navy', 'bags-wallets-p3', 'উইকএন্ড সাইজ।', 'Weekend getaway size.', 1041.00, NULL, 'https://images.unsplash.com/photo-1622445275751-13fa261cba76?auto=format&fit=crop&w=800&q=80', 33, 1),
+(9, 'বাইফোল্ড ওয়ালেট — ব্রাউন', 'Bifold Wallet — Brown', 'bags-wallets-p4', 'RFID ব্লক।', 'RFID blocking slots.', 1014.00, NULL, 'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?auto=format&fit=crop&w=800&q=80', 38, 1),
+(9, 'কার্ড হোল্ডার — কার্বন', 'Card Holder — Carbon', 'bags-wallets-p5', 'স্লিম ওয়ালেট।', 'Slim front pocket wallet.', 1137.00, 1273.44, 'https://images.unsplash.com/photo-1503341504253-dff4815485f1?auto=format&fit=crop&w=800&q=80', 43, 1),
+(9, 'টোট ব্যাগ — ক্যানভাস', 'Tote Bag — Canvas', 'bags-wallets-p6', 'জিম ও বাজার।', 'Gym and market runs.', 1260.00, NULL, 'https://images.unsplash.com/photo-1593032485979-d2e701b7c877?auto=format&fit=crop&w=800&q=80', 48, 1),
+(9, 'বেল্ট ব্যাগ — অলিভ', 'Belt Bag — Olive', 'bags-wallets-p7', 'হ্যান্ডস ফ্রি।', 'Hands-free festival style.', 1233.00, NULL, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80', 53, 1),
+(9, 'ল্যাপটপ স্লিভ — গ্রে', 'Laptop Sleeve — Gray', 'bags-wallets-p8', 'প্যাডেড স্লিভ।', 'Padded faux leather.', 1356.00, NULL, 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=800&q=80', 58, 1),
+(9, 'পাসপোর্ট হোল্ডার', 'Passport Holder', 'bags-wallets-p9', 'ট্রাভেল ডকুমেন্ট।', 'Travel document organizer.', 1479.00, 1656.48, 'https://images.unsplash.com/photo-1600185365926-3a5ce2bd5b5c?auto=format&fit=crop&w=800&q=80', 63, 1),
+(9, 'কী অর্গানাইজার', 'Key Organizer', 'bags-wallets-p10', 'চাবির রিং।', 'Quiet carry, no jingle.', 1452.00, NULL, 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80', 68, 1),
+(10, 'ফেস ক্লিনজার — জেন্টল', 'Face Cleanser — Gentle', 'grooming-skincare-p1', 'দৈনন্দিন পরিষ্কার।', 'Daily grime without dryness.', 832.00, 931.84, 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=800&q=80', 24, 1),
+(10, 'ময়েশ্চারাইজার SPF', 'Moisturizer with SPF', 'grooming-skincare-p2', 'হালকা SPF।', 'Lightweight sun protection.', 955.00, NULL, 'https://images.unsplash.com/photo-1489987707025-afc232fdf7d8?auto=format&fit=crop&w=800&q=80', 29, 1),
+(10, 'বিয়ার্ড অয়েল — স্যান্ডালউড', 'Beard Oil — Sandalwood', 'grooming-skincare-p3', 'নরম করে।', 'Softens and conditions.', 1078.00, NULL, 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80', 34, 1),
+(10, 'শেভিং ক্রিম — সেনসিটিভ', 'Shaving Cream — Sensitive', 'grooming-skincare-p4', 'অ্যালো ব্লেন্ড।', 'Rich lather, aloe blend.', 1051.00, NULL, 'https://images.unsplash.com/photo-1490114538077-275a67f0d028?auto=format&fit=crop&w=800&q=80', 39, 1),
+(10, 'আফটারশেভ বাম', 'Aftershave Balm', 'grooming-skincare-p5', 'শেভের পর শান্ত।', 'Soothes post-shave skin.', 1174.00, 1314.88, 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&w=800&q=80', 44, 1),
+(10, 'অ্যান্টি-পার্সপিরেন্ট — কুল', 'Anti-Perspirant — Cool', 'grooming-skincare-p6', '৪৮ ঘণ্টা।', '48h protection.', 1297.00, NULL, 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80', 49, 1),
+(10, 'হেয়ার ক্লে — ম্যাট', 'Hair Clay — Matte', 'grooming-skincare-p7', 'ম্যাট ফিনিশ।', 'Strong hold, natural finish.', 1270.00, NULL, 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=800&q=80', 54, 1),
+(10, 'লিপ বাম — অ্যান SPF', 'Lip Balm — SPF', 'grooming-skincare-p8', 'আউটডোর কেয়ার।', 'Outdoor lip care.', 1393.00, NULL, 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=800&q=80', 59, 1),
+(10, 'বডি ওয়াশ — চারকোল', 'Body Wash — Charcoal', 'grooming-skincare-p9', 'ডিপ ক্লিন।', 'Deep clean, fresh scent.', 1516.00, 1697.92, 'https://images.unsplash.com/photo-1578932750294-f5075e85f44a?auto=format&fit=crop&w=800&q=80', 64, 1),
+(10, 'হ্যান্ড ক্রিম', 'Hand Cream', 'grooming-skincare-p10', 'শুষ্ক হাতে।', 'Non-greasy for dry hands.', 1489.00, NULL, 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80', 69, 1);
+
+UPDATE products SET brand_id = MOD(id - 1, 10) + 1;

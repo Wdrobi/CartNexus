@@ -1,0 +1,24 @@
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "../auth/AuthContext.jsx";
+
+export default function RequireAuth() {
+  const { token, user, ready } = useAuth();
+  const { t } = useTranslation();
+  const location = useLocation();
+
+  if (!ready) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-ink-950 text-slate-400">
+        {t("auth.loading")}
+      </div>
+    );
+  }
+  if (!token) {
+    return <Navigate to="/admin/login" replace state={{ from: location }} />;
+  }
+  if (user && user.role !== "admin") {
+    return <Navigate to="/" replace />;
+  }
+  return <Outlet />;
+}

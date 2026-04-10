@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-ink-950 text-slate-100 antialiased;
+}
+
+@layer utilities {
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-brand-200 via-brand-400 to-brand-300 bg-clip-text text-transparent;
+  }
+}
