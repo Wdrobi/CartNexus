@@ -10,6 +10,8 @@ router.get("/", async (req, res) => {
     q: searchQ,
     sort: sortRaw,
     in_stock: inStockRaw,
+    sale: saleRaw,
+    has_image: hasImageRaw,
     limit = "24",
     offset = "0",
   } = req.query;
@@ -34,6 +36,19 @@ router.get("/", async (req, res) => {
       inStockRaw === "1" || String(inStockRaw).toLowerCase() === "true";
     if (inStockOnly) {
       whereExtra += ` AND p.stock > 0`;
+    }
+
+    const saleOnly = saleRaw === "1" || String(saleRaw).toLowerCase() === "true";
+    if (saleOnly) {
+      whereExtra += ` AND p.compare_at_price IS NOT NULL AND p.compare_at_price > p.price`;
+    }
+
+    const requireImage =
+      hasImageRaw === "1" ||
+      hasImageRaw === "true" ||
+      String(hasImageRaw || "").toLowerCase() === "true";
+    if (requireImage) {
+      whereExtra += ` AND p.image_url IS NOT NULL AND TRIM(p.image_url) <> ''`;
     }
 
     const q = String(searchQ || "").trim();
@@ -64,6 +79,10 @@ router.get("/", async (req, res) => {
         break;
       case "name_asc":
         orderClause = "ORDER BY p.name_en ASC, p.id ASC";
+        break;
+      case "hot":
+        orderClause =
+          "ORDER BY (CASE WHEN p.compare_at_price IS NOT NULL AND p.compare_at_price > p.price THEN 1 ELSE 0 END) DESC, p.stock DESC, p.created_at DESC, p.id DESC";
         break;
       case "latest":
       default:

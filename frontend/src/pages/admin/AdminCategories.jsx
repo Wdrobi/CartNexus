@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { authFetch } from "../../api/authFetch.js";
+import { translateAdminError } from "../../utils/adminApiError.js";
 import { slugify } from "../../utils/slug.js";
 
 const emptyForm = {
@@ -113,7 +114,7 @@ export default function AdminCategories() {
 
       {error && (
         <p className="mt-4 text-amber-200">
-          {t("admin.crud.saveError")}: <code>{error}</code>
+          {t("admin.crud.saveError")}: <span className="font-mono">{translateAdminError(t, error)}</span>
         </p>
       )}
 

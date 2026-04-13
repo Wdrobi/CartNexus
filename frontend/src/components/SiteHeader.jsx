@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { apiFetch } from "../api/apiBase.js";
+import { useAuth } from "../auth/AuthContext.jsx";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
 
 function IconSearch({ className }) {
@@ -52,6 +54,13 @@ export default function SiteHeader() {
   const { pathname, hash } = useLocation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user, token, ready, logout } = useAuth();
+  const loggedIn = Boolean(ready && token && user);
+
+  function handleLogout() {
+    logout();
+    navigate("/", { replace: true });
+  }
   const searchRef = useRef(null);
   const [query, setQuery] = useState("");
   const [categories, setCategories] = useState([]);
@@ -113,14 +122,14 @@ export default function SiteHeader() {
   }, [mobileOpen, catOpen, brandOpen]);
 
   useEffect(() => {
-    fetch("/api/categories")
+    apiFetch("/api/categories")
       .then((r) => (r.ok ? r.json() : { categories: [] }))
       .then((d) => setCategories(d.categories || []))
       .catch(() => setCategories([]));
   }, []);
 
   useEffect(() => {
-    fetch("/api/brands")
+    apiFetch("/api/brands")
       .then((r) => (r.ok ? r.json() : { brands: [] }))
       .then((d) => setBrands(d.brands || []))
       .catch(() => setBrands([]));
@@ -256,32 +265,93 @@ export default function SiteHeader() {
             >
               <IconCart className="h-6 w-6" />
             </Link>
-            <Link
-              to="/login"
-              className="text-sm font-medium text-slate-300 transition hover:text-white"
-            >
-              {t("nav.login")}
-            </Link>
-            <Link
-              to="/register"
-              className="rounded-full bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-500/25 transition hover:bg-brand-400"
-            >
-              {t("nav.register")}
-            </Link>
+            {loggedIn ? (
+              <>
+                {String(user.role) === "admin" ? (
+                  <Link
+                    to="/admin"
+                    className="text-sm font-semibold text-brand-400 transition hover:text-brand-300"
+                  >
+                    {t("admin.panel")}
+                  </Link>
+                ) : (
+                  <Link
+                    to="/account"
+                    className="text-sm font-medium text-slate-300 transition hover:text-white"
+                  >
+                    {t("nav.myAccount")}
+                  </Link>
+                )}
+                <span
+                  className="max-w-[10rem] truncate text-sm text-slate-300"
+                  title={user.email || ""}
+                >
+                  {user.name?.trim() || user.email}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-sm font-medium text-slate-300 transition hover:text-white"
+                >
+                  {t("auth.logout")}
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="text-sm font-medium text-slate-300 transition hover:text-white"
+                >
+                  {t("nav.login")}
+                </Link>
+                <Link
+                  to="/register"
+                  className="rounded-full bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-500/25 transition hover:bg-brand-400"
+                >
+                  {t("nav.register")}
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Mobile: login + register row */}
-        <div className="mt-2 flex items-center justify-end gap-3 border-t border-white/5 pt-3 lg:hidden">
-          <Link to="/login" className="text-sm font-medium text-slate-400 hover:text-white">
-            {t("nav.login")}
-          </Link>
-          <Link
-            to="/register"
-            className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-400"
-          >
-            {t("nav.register")}
-          </Link>
+        {/* Mobile: auth row */}
+        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-white/5 pt-3 lg:hidden">
+          {loggedIn ? (
+            <>
+              {String(user.role) === "admin" ? (
+                <Link to="/admin" className="text-sm font-semibold text-brand-400">
+                  {t("admin.panel")}
+                </Link>
+              ) : (
+                <Link to="/account" className="text-sm font-medium text-slate-300 hover:text-white">
+                  {t("nav.myAccount")}
+                </Link>
+              )}
+              <span className="max-w-[40vw] truncate text-xs text-slate-400" title={user.email || ""}>
+                {user.name?.trim() || user.email}
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-sm font-medium text-slate-400 hover:text-white"
+              >
+                {t("auth.logout")}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="text-sm font-medium text-slate-400 hover:text-white">
+                {t("nav.login")}
+              </Link>
+              <Link
+                to="/register"
+                className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-400"
+              >
+                {t("nav.register")}
+              </Link>
+            </>
+          )}
         </div>
       </div>
 

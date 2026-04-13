@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0fdfa"/>
+      <stop offset="100%" style="stop-color:#e2e8f0"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <g fill="none" stroke="#0d9488" stroke-width="3" opacity="0.35">
+    <path d="M280 380 L400 280 L520 380 L520 720 L280 720 Z"/>
+    <path d="M340 420 L460 420"/>
+    <path d="M400 420 L400 620"/>
+  </g>
+  <text x="400" y="880" text-anchor="middle" fill="#64748b" font-family="system-ui,sans-serif" font-size="22" font-weight="600">CartNexus</text>
+</svg>

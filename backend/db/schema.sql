@@ -1,6 +1,7 @@
--- CartNexus — core tables (MySQL 8+)
+-- CartNexus — core tables (MySQL 8+). Canonical DDL for NEW installs.
 -- চালান: mysql -u root -p < db/schema.sql
 -- অথবা phpMyAdmin / Workbench থেকে এই ফাইল এক্সিকিউট করুন
+-- পরিবর্তন হলে: db/migration_*.sql (পুরনো DB) + db/db-changelog.txt এ লিখুন।
 
 CREATE DATABASE IF NOT EXISTS cartnexus
   CHARACTER SET utf8mb4
@@ -14,8 +15,30 @@ CREATE TABLE users (
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('admin', 'customer') NOT NULL DEFAULT 'customer',
   name VARCHAR(255) NOT NULL,
+  phone VARCHAR(32) NULL,
+  avatar_url VARCHAR(512) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE user_addresses (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  label VARCHAR(64) NOT NULL DEFAULT 'Home',
+  recipient_name VARCHAR(255) NOT NULL,
+  phone VARCHAR(32) NULL,
+  line1 VARCHAR(255) NOT NULL,
+  line2 VARCHAR(255) NULL,
+  city VARCHAR(128) NOT NULL,
+  area VARCHAR(128) NULL,
+  postal_code VARCHAR(32) NULL,
+  country VARCHAR(64) NOT NULL DEFAULT 'Bangladesh',
+  is_default TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_user_addresses_user FOREIGN KEY (user_id)
+    REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_user_addresses_user ON user_addresses (user_id);
 
 CREATE TABLE categories (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

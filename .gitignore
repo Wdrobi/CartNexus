@@ -10,3 +10,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.local
+.cursor/
+backend/uploads/**
+!backend/uploads/.gitkeep

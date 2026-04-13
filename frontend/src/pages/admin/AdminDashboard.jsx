@@ -29,6 +29,7 @@ export default function AdminDashboard() {
   const cards = stats
     ? [
         { label: t("admin.stats.categories"), value: stats.categories },
+        { label: t("admin.stats.brands"), value: stats.brands ?? 0 },
         { label: t("admin.stats.products"), value: stats.products },
         { label: t("admin.stats.activeProducts"), value: stats.activeProducts },
         { label: t("admin.stats.users"), value: stats.users },
@@ -52,7 +53,7 @@ export default function AdminDashboard() {
         <p className="mt-8 text-slate-500">{t("shop.loading")}</p>
       )}
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {cards.map((c, i) => (
           <motion.div
             key={c.label}

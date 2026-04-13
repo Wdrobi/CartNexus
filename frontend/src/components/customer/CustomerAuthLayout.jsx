@@ -2,6 +2,8 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import SiteHeader from "../SiteHeader.jsx";
 import SiteFooter from "../SiteFooter.jsx";
+import SafeImage from "../SafeImage.jsx";
+import { PRODUCT_IMAGE_FALLBACK_ALT, WIDE_IMAGE_FALLBACK } from "../../utils/productImage.js";
 
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=1600&q=80";
@@ -24,11 +26,14 @@ export default function CustomerAuthLayout({ variant, children }) {
               <div className="relative flex h-full w-full items-stretch">
                 <div className="pointer-events-none absolute -inset-2 hidden rounded-[2rem] bg-gradient-to-br from-brand-500/25 via-transparent to-brand-800/20 blur-2xl lg:block" />
                 <div className="relative h-full w-full overflow-hidden border border-white/10 lg:rounded-3xl lg:shadow-2xl">
-                  <img
+                  <SafeImage
                     src={HERO_IMAGE}
+                    fallback={WIDE_IMAGE_FALLBACK}
+                    fallbackAlt={PRODUCT_IMAGE_FALLBACK_ALT}
                     alt=""
                     className="h-full w-full object-cover object-center"
                     loading="eager"
+                    decoding="async"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-brand-950/20" />
                   <p className="absolute bottom-0 left-0 right-0 p-6 font-display text-xl font-bold leading-snug text-white sm:p-8 sm:text-2xl lg:p-10 lg:text-3xl lg:leading-tight">

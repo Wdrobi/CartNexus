@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { apiFetch } from "../api/apiBase.js";
 import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
 
@@ -79,7 +80,7 @@ export default function ContactPage() {
     setStatus("sending");
     setErrorKey(null);
     try {
-      const r = await fetch("/api/contact", {
+      const r = await apiFetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

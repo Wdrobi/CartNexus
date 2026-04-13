@@ -3,6 +3,10 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { pool } from "../db/pool.js";
 import { getJwtSecret } from "../config/jwtSecret.js";
+import { requireAuthUser } from "../middleware/authUser.js";
+import { getUsersColumnNames } from "../db/schemaInfo.js";
+import { selectUserByEmail, selectUserById, toPublicUser } from "../db/userQueries.js";
+import { unlinkAvatarFileIfOwned } from "../utils/avatarFiles.js";
 
 const router = Router();
 
@@ -32,14 +36,10 @@ router.post("/register", async (req, res) => {
       return res.status(500).json({ error: "server_misconfigured" });
     }
     const token = jwt.sign({ sub: id, role: "customer" }, secret, { expiresIn: "7d" });
+    const created = await selectUserById(id);
     res.status(201).json({
       token,
-      user: {
-        id,
-        email: normalized,
-        role: "customer",
-        name: displayName,
-      },
+      user: toPublicUser(created),
     });
   } catch (e) {
     if (e.code === "ER_DUP_ENTRY") {
@@ -59,14 +59,10 @@ router.post("/login", async (req, res) => {
     normalized = "admin@cartnexus.local";
   }
   try {
-    const [rows] = await pool.query(
-      `SELECT id, email, password_hash, role, name FROM users WHERE email = ?`,
-      [normalized]
-    );
-    if (!rows.length) {
+    const user = await selectUserByEmail(normalized, { withPassword: true });
+    if (!user) {
       return res.status(401).json({ error: "invalid_credentials" });
     }
-    const user = rows[0];
     const ok = await bcrypt.compare(String(password), user.password_hash);
     if (!ok) {
       return res.status(401).json({ error: "invalid_credentials" });
@@ -82,12 +78,7 @@ router.post("/login", async (req, res) => {
     );
     res.json({
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        name: user.name,
-      },
+      user: toPublicUser(user),
     });
   } catch (e) {
     res.status(500).json({ error: "database_error", message: e.message });
@@ -109,16 +100,124 @@ router.get("/me", async (req, res) => {
     if (!Number.isFinite(uid)) {
       return res.status(401).json({ error: "invalid_token" });
     }
-    const [rows] = await pool.query(
-      `SELECT id, email, role, name FROM users WHERE id = ?`,
-      [uid]
-    );
-    if (!rows.length) {
+    const row = await selectUserById(uid);
+    if (!row) {
       return res.status(401).json({ error: "invalid_token" });
     }
-    res.json({ user: rows[0] });
+    res.json({ user: toPublicUser(row) });
   } catch {
     res.status(401).json({ error: "invalid_token" });
+  }
+});
+
+router.patch("/profile", requireAuthUser, async (req, res) => {
+  const uid = Number(req.user.id);
+  if (!Number.isFinite(uid)) {
+    return res.status(400).json({ error: "invalid_id" });
+  }
+  const { name, email, phone, avatar_url, currentPassword, newPassword } =
+    req.body || {};
+  const hasName = name !== undefined;
+  const hasEmail = email !== undefined;
+  const hasPhone = phone !== undefined;
+  const hasAvatar = avatar_url !== undefined;
+  const wantsPassword =
+    newPassword !== undefined && String(newPassword).length > 0;
+  if (!hasName && !hasEmail && !hasPhone && !hasAvatar && !wantsPassword) {
+    return res.status(400).json({ error: "no_updates" });
+  }
+  try {
+    const row = await selectUserById(uid, { withPassword: true });
+    if (!row) {
+      return res.status(404).json({ error: "not_found" });
+    }
+
+    const cols = await getUsersColumnNames();
+    const hasPhoneCol = cols.has("phone");
+    const hasAvatarCol = cols.has("avatar_url");
+
+    let nextName = row.name;
+    let nextEmail = row.email;
+    let nextPhone = row.phone;
+    let nextAvatar = row.avatar_url;
+
+    if (hasName) {
+      const n = String(name).trim().slice(0, 255);
+      if (!n) {
+        return res.status(400).json({ error: "missing_fields" });
+      }
+      nextName = n;
+    }
+    if (hasEmail) {
+      const em = String(email).trim().toLowerCase();
+      if (!em) {
+        return res.status(400).json({ error: "missing_fields" });
+      }
+      if (em !== row.email) {
+        const [[dup]] = await pool.query(
+          `SELECT id FROM users WHERE email = ? AND id != ?`,
+          [em, uid]
+        );
+        if (dup) {
+          return res.status(409).json({ error: "duplicate_email" });
+        }
+        nextEmail = em;
+      }
+    }
+    if (hasPhone && hasPhoneCol) {
+      nextPhone =
+        phone === null || phone === ""
+          ? null
+          : String(phone).trim().slice(0, 32);
+    }
+    if (hasAvatar && hasAvatarCol) {
+      nextAvatar =
+        avatar_url === null || avatar_url === ""
+          ? null
+          : String(avatar_url).trim().slice(0, 512);
+    }
+
+    let nextHash = null;
+    if (wantsPassword) {
+      const np = String(newPassword);
+      if (np.length < 8) {
+        return res.status(400).json({ error: "weak_password" });
+      }
+      if (currentPassword == null || currentPassword === "") {
+        return res.status(400).json({ error: "current_password_required" });
+      }
+      const ok = await bcrypt.compare(String(currentPassword), row.password_hash);
+      if (!ok) {
+        return res.status(401).json({ error: "invalid_credentials" });
+      }
+      nextHash = await bcrypt.hash(np, 10);
+    }
+
+    const setParts = ["name = ?", "email = ?"];
+    const setVals = [nextName, nextEmail];
+    if (hasPhoneCol) {
+      setParts.push("phone = ?");
+      setVals.push(nextPhone);
+    }
+    if (hasAvatarCol) {
+      setParts.push("avatar_url = ?");
+      setVals.push(nextAvatar);
+    }
+    if (nextHash !== null) {
+      setParts.push("password_hash = ?");
+      setVals.push(nextHash);
+    }
+    setVals.push(uid);
+    await pool.query(`UPDATE users SET ${setParts.join(", ")} WHERE id = ?`, setVals);
+
+    if (hasAvatarCol && hasAvatar && nextAvatar === null && row.avatar_url) {
+      await unlinkAvatarFileIfOwned(String(row.avatar_url));
+    }
+
+    const updated = await selectUserById(uid);
+    res.json({ user: toPublicUser(updated) });
+  } catch (e) {
+    res.status(500).json({ error: "database_error", message: e.message });
   }
 });
 

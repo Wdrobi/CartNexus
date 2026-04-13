@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiFetch } from "../api/apiBase.js";
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -11,6 +12,8 @@ import {
   categoryName,
   brandName,
 } from "../utils/productText.js";
+import { PRODUCT_IMAGE_FALLBACK, PRODUCT_IMAGE_FALLBACK_ALT } from "../utils/productImage.js";
+import SafeImage from "../components/SafeImage.jsx";
 
 export default function ShopProductPage() {
   const { slug } = useParams();
@@ -23,7 +26,7 @@ export default function ShopProductPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetch(`/api/products/${encodeURIComponent(slug)}`)
+    apiFetch(`/api/products/${encodeURIComponent(slug)}`)
       .then((r) => {
         if (r.status === 404) throw new Error("404");
         if (!r.ok) throw new Error(String(r.status));
@@ -67,17 +70,16 @@ export default function ShopProductPage() {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="aspect-square overflow-hidden rounded-2xl border border-white/10 bg-ink-900/60">
-              {product.image_url ? (
-                <img
-                  src={product.image_url}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-8xl text-brand-500/25">
-                  ◆
-                </div>
-              )}
+              <SafeImage
+                src={product.image_url ?? product.imageUrl}
+                seed={product.id}
+                fallback={PRODUCT_IMAGE_FALLBACK}
+                fallbackAlt={PRODUCT_IMAGE_FALLBACK_ALT}
+                alt=""
+                className="h-full w-full object-cover"
+                loading="eager"
+                decoding="async"
+              />
             </div>
             <div>
               <p className="text-sm font-medium text-brand-400">

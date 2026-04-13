@@ -38,6 +38,12 @@ export default function AdminLayout() {
             <NavLink to="/admin/categories" className={linkClass}>
               {t("admin.nav.categories")}
             </NavLink>
+            <NavLink to="/admin/brands" className={linkClass}>
+              {t("admin.nav.brands")}
+            </NavLink>
+            <NavLink to="/admin/users" className={linkClass}>
+              {t("admin.nav.users")}
+            </NavLink>
           </nav>
           <button
             type="button"

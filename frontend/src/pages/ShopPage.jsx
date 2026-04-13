@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { apiFetch } from "../api/apiBase.js";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -11,6 +12,8 @@ import {
   categoryName,
   brandName,
 } from "../utils/productText.js";
+import { PRODUCT_IMAGE_FALLBACK, PRODUCT_IMAGE_FALLBACK_ALT } from "../utils/productImage.js";
+import SafeImage from "../components/SafeImage.jsx";
 
 function IconSearch({ className }) {
   return (
@@ -47,6 +50,7 @@ export default function ShopPage() {
   const brand = searchParams.get("brand") || "";
   const sort = searchParams.get("sort") || "latest";
   const inStockOnly = searchParams.get("in_stock") === "1";
+  const saleOnly = searchParams.get("sale") === "1";
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
 
   const [localQ, setLocalQ] = useState(q);
@@ -65,14 +69,14 @@ export default function ShopPage() {
   }, [q]);
 
   useEffect(() => {
-    fetch("/api/categories")
+    apiFetch("/api/categories")
       .then((r) => (r.ok ? r.json() : { categories: [] }))
       .then((d) => setCategories(d.categories || []))
       .catch(() => setCategories([]));
   }, []);
 
   useEffect(() => {
-    fetch("/api/brands")
+    apiFetch("/api/brands")
       .then((r) => (r.ok ? r.json() : { brands: [] }))
       .then((d) => setBrands(d.brands || []))
       .catch(() => setBrands([]));
@@ -90,7 +94,7 @@ export default function ShopPage() {
     [searchParams, setSearchParams]
   );
 
-  const filterKey = `${q}|${category}|${brand}|${sort}|${inStockOnly}`;
+  const filterKey = `${q}|${category}|${brand}|${sort}|${inStockOnly}|${saleOnly}`;
 
   useEffect(() => {
     if (prevFilterKeyRef.current === null) {
@@ -118,7 +122,8 @@ export default function ShopPage() {
     if (category) params.set("category", category);
     if (brand) params.set("brand", brand);
     if (inStockOnly) params.set("in_stock", "1");
-    fetch(`/api/products?${params.toString()}`)
+    if (saleOnly) params.set("sale", "1");
+    apiFetch(`/api/products?${params.toString()}`)
       .then((r) => {
         if (!r.ok) throw new Error(String(r.status));
         return r.json();
@@ -138,7 +143,7 @@ export default function ShopPage() {
     return () => {
       cancelled = true;
     };
-  }, [q, category, brand, sort, inStockOnly, page]);
+  }, [q, category, brand, sort, inStockOnly, saleOnly, page]);
 
   useEffect(() => {
     if (loading || totalCount === 0) return;
@@ -181,7 +186,7 @@ export default function ShopPage() {
     setFiltersOpen(false);
   }
 
-  const hasActiveFilters = Boolean(q.trim() || category || brand || inStockOnly);
+  const hasActiveFilters = Boolean(q.trim() || category || brand || inStockOnly || saleOnly);
 
   const activeBrandLabel =
     brand && brands.length
@@ -201,6 +206,7 @@ export default function ShopPage() {
 
   const sortOptions = [
     { value: "latest", label: t("shop.sortLatest") },
+    { value: "hot", label: t("shop.sortHot") },
     { value: "price_asc", label: t("shop.sortPriceLow") },
     { value: "price_desc", label: t("shop.sortPriceHigh") },
     { value: "name_asc", label: t("shop.sortName") },
@@ -243,13 +249,11 @@ export default function ShopPage() {
           </button>
         </form>
 
-        {(q || category || brand) && (
+        {(q || category || brand || saleOnly) && (
           <p className="mt-3 text-sm text-brand-700">
-            {q ? t("shop.filterSearch", { q }) : ""}
-            {q && (category || brand) ? " · " : ""}
-            {category ? t("shop.filterCategory", { category }) : ""}
-            {category && brand ? " · " : ""}
-            {brand ? t("shop.filterBrand", { brand: activeBrandLabel }) : ""}
+            {[q && t("shop.filterSearch", { q }), category && t("shop.filterCategory", { category }), brand && t("shop.filterBrand", { brand: activeBrandLabel }), saleOnly && t("shop.filterSale")]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         )}
 
@@ -334,17 +338,16 @@ export default function ShopPage() {
                       className="relative block h-full w-full overflow-hidden"
                       aria-label={productName(p, i18n.language)}
                     >
-                      {p.image_url ? (
-                        <img
-                          src={p.image_url}
-                          alt=""
-                          className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-4xl text-brand-400/40">
-                          ◆
-                        </div>
-                      )}
+                      <SafeImage
+                        src={p.image_url ?? p.imageUrl}
+                        seed={p.id}
+                        fallback={PRODUCT_IMAGE_FALLBACK}
+                        fallbackAlt={PRODUCT_IMAGE_FALLBACK_ALT}
+                        alt=""
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </Link>
                   </div>
                   <div className="flex flex-1 flex-col p-3 sm:p-4">

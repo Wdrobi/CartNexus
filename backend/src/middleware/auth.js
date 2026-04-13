@@ -15,7 +15,8 @@ export function requireAdmin(req, res, next) {
     if (payload.role !== "admin") {
       return res.status(403).json({ error: "forbidden" });
     }
-    req.user = { id: payload.sub, role: payload.role };
+    const uid = Number(payload.sub);
+    req.user = { id: Number.isFinite(uid) ? uid : payload.sub, role: payload.role };
     next();
   } catch {
     return res.status(401).json({ error: "invalid_token" });

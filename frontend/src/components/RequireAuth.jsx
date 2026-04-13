@@ -17,7 +17,7 @@ export default function RequireAuth() {
   if (!token) {
     return <Navigate to="/admin/login" replace state={{ from: location }} />;
   }
-  if (user && user.role !== "admin") {
+  if (user && String(user.role) !== "admin") {
     return <Navigate to="/" replace />;
   }
   return <Outlet />;

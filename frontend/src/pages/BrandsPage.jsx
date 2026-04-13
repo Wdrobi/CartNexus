@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import { apiFetch } from "../api/apiBase.js";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
 import { brandName } from "../utils/productText.js";
+import SafeImage from "../components/SafeImage.jsx";
+import { PRODUCT_IMAGE_FALLBACK, PRODUCT_IMAGE_FALLBACK_ALT, brandCoverUrl } from "../utils/productImage.js";
 
 export default function BrandsPage() {
   const { t, i18n } = useTranslation();
@@ -16,7 +19,7 @@ export default function BrandsPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetch("/api/brands")
+    apiFetch("/api/brands")
       .then((r) => {
         if (!r.ok) throw new Error(String(r.status));
         return r.json();
@@ -65,7 +68,7 @@ export default function BrandsPage() {
           {brands.map((b, idx) => {
             const name = brandName(b, i18n.language);
             const count = Number(b.product_count) || 0;
-            const cover = b.cover_image || null;
+            const cover = brandCoverUrl(b);
             return (
               <motion.li
                 key={b.id}
@@ -78,21 +81,16 @@ export default function BrandsPage() {
                     to={`/shop?brand=${encodeURIComponent(b.slug)}`}
                     className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200"
                   >
-                    {cover ? (
-                      <img
-                        src={cover}
-                        alt=""
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-brand-500/15 to-ink-900/10">
-                        <span className="font-display text-4xl font-bold text-brand-600/40">
-                          {name.slice(0, 1)}
-                        </span>
-                        <span className="text-xs font-medium uppercase tracking-widest text-slate-400">CartNexus</span>
-                      </div>
-                    )}
+                    <SafeImage
+                      src={cover}
+                      seed={b.id}
+                      fallback={PRODUCT_IMAGE_FALLBACK}
+                      fallbackAlt={PRODUCT_IMAGE_FALLBACK_ALT}
+                      alt=""
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      loading="lazy"
+                      decoding="async"
+                    />
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-4">
                       <h2 className="font-display text-lg font-bold text-white drop-shadow-sm sm:text-xl">{name}</h2>

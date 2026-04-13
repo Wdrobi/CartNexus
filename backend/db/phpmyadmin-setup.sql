@@ -15,8 +15,30 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('admin', 'customer') NOT NULL DEFAULT 'customer',
   name VARCHAR(255) NOT NULL,
+  phone VARCHAR(32) NULL,
+  avatar_url VARCHAR(512) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS user_addresses (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  label VARCHAR(64) NOT NULL DEFAULT 'Home',
+  recipient_name VARCHAR(255) NOT NULL,
+  phone VARCHAR(32) NULL,
+  line1 VARCHAR(255) NOT NULL,
+  line2 VARCHAR(255) NULL,
+  city VARCHAR(128) NOT NULL,
+  area VARCHAR(128) NULL,
+  postal_code VARCHAR(32) NULL,
+  country VARCHAR(64) NOT NULL DEFAULT 'Bangladesh',
+  is_default TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_user_addresses_user FOREIGN KEY (user_id)
+    REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_user_addresses_user ON user_addresses (user_id);
 
 CREATE TABLE IF NOT EXISTS categories (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -73,4 +95,5 @@ INSERT INTO users (email, password_hash, role, name) VALUES
 
 -- পূর্ণ ক্যাটালগ: ১০টি ব্র্যান্ড, ১০টি ক্যাটাগরি × ১০টি পণ্য (Unsplash ছবি)।
 -- phpMyAdmin → Import → backend/db/seed.sql চালান (users অপরিবর্তিত থাকে; products/categories/brands রিসেট হবে)।
--- পুরনো ডাটাবেজে শুধু টেবিল আপডেট: backend/db/migration_add_brands.sql একবার চালান।
+-- পুরনো ডাটাবেজ (আগে শুধু users+categories+products ছিল): migration_add_brands.sql ও migration_profile_addresses.sql একবার।
+-- নতুন ইনস্টল: এই ফাইল + seed.sql = migration লাগবে না যদি সব টেবিল এখান থেকেই তৈরি হয়।

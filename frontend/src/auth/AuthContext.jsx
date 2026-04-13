@@ -6,7 +6,10 @@ import {
   useMemo,
   useState,
 } from "react";
+import { apiFetch } from "../api/apiBase.js";
 import { AUTH_TOKEN_KEY } from "./storage.js";
+
+const ME_TIMEOUT_MS = 15000;
 
 const AuthContext = createContext(null);
 
@@ -38,6 +41,10 @@ export function AuthProvider({ children }) {
     setUser(newUser);
   }, []);
 
+  const updateUser = useCallback((nextUser) => {
+    setUser(nextUser);
+  }, []);
+
   useEffect(() => {
     if (!token) {
       setUser(null);
@@ -45,30 +52,41 @@ export function AuthProvider({ children }) {
       return;
     }
     let cancelled = false;
-    fetch("/api/auth/me", {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), ME_TIMEOUT_MS);
+
+    apiFetch("/api/auth/me", {
       headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
     })
-      .then((r) => {
-        if (!r.ok) throw new Error("me");
+      .then(async (r) => {
+        if (!r.ok) {
+          if (r.status === 401) throw new Error("unauthorized");
+          throw new Error("me_http");
+        }
         return r.json();
       })
       .then((data) => {
         if (!cancelled) setUser(data.user);
       })
       .catch(() => {
-        if (!cancelled) logout();
+        if (cancelled) return;
+        logout();
       })
       .finally(() => {
+        clearTimeout(timeoutId);
         if (!cancelled) setReady(true);
       });
+
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [token, logout]);
 
   const value = useMemo(
-    () => ({ token, user, login, logout, ready }),
-    [token, user, login, logout, ready]
+    () => ({ token, user, login, logout, updateUser, ready }),
+    [token, user, login, logout, updateUser, ready]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,5 +1,6 @@
--- Run once on existing CartNexus DB (already has products table).
--- Adds brands + optional brand_id on products, seeds 10 brands, assigns products round-robin.
+-- One-time migration for OLD databases created before brands + products.brand_id.
+-- If brand_id already exists: skip the ALTER TABLE blocks (see comments inside).
+-- Fresh installs: already in db/schema.sql / db/phpmyadmin-setup.sql.
 
 USE cartnexus;
 

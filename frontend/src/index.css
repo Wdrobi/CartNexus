@@ -14,4 +14,47 @@ body {
   .text-gradient-brand {
     @apply bg-gradient-to-r from-brand-200 via-brand-400 to-brand-300 bg-clip-text text-transparent;
   }
+
+  .hero-mock-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-mock-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(255, 255, 255, 0.14) 50%,
+      transparent 60%
+    );
+    animation: hero-mock-shimmer 2.8s ease-in-out infinite;
+  }
+
+  .hero-ring-spin {
+    animation: hero-ring-spin 22s linear infinite;
+  }
+}
+
+@keyframes hero-mock-shimmer {
+  0%,
+  100% {
+    transform: translateX(-120%);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateX(120%);
+    opacity: 1;
+  }
+}
+
+@keyframes hero-ring-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

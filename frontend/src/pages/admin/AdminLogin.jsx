@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
+import { apiFetch } from "../../api/apiBase.js";
 import { useAuth } from "../../auth/AuthContext.jsx";
 
 export default function AdminLogin() {
@@ -24,7 +25,7 @@ export default function AdminLogin() {
       </div>
     );
   }
-  if (ready && token && user?.role === "admin") {
+  if (ready && token && String(user?.role) === "admin") {
     return <Navigate to={from} replace />;
   }
 
@@ -34,7 +35,7 @@ export default function AdminLogin() {
     setErrorDetail(null);
     setSubmitting(true);
     try {
-      const r = await fetch("/api/auth/login", {
+      const r = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: username.trim(), password }),

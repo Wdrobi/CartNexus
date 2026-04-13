@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { apiFetch } from "../api/apiBase.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import CustomerAuthLayout from "../components/customer/CustomerAuthLayout.jsx";
 import AuthPasswordField from "../components/customer/AuthPasswordField.jsx";
@@ -17,8 +18,19 @@ export default function RegisterPage() {
   const [errorDetail, setErrorDetail] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (ready && token && user?.role === "customer") {
-    return <Navigate to="/" replace />;
+  if (!ready) {
+    return (
+      <CustomerAuthLayout variant="register">
+        <p className="text-center text-slate-400">{t("auth.loading")}</p>
+      </CustomerAuthLayout>
+    );
+  }
+
+  if (token && user) {
+    if (String(user.role) === "admin") {
+      return <Navigate to="/admin" replace />;
+    }
+    return <Navigate to="/account" replace />;
   }
 
   async function handleSubmit(e) {
@@ -33,9 +45,13 @@ export default function RegisterPage() {
       setError("weak_password");
       return;
     }
+    if (!name.trim()) {
+      setError("missing_fields");
+      return;
+    }
     setSubmitting(true);
     try {
-      const r = await fetch("/api/auth/register", {
+      const r = await apiFetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -61,7 +77,7 @@ export default function RegisterPage() {
         return;
       }
       login(data.token, data.user, true);
-      navigate("/", { replace: true });
+      navigate("/account", { replace: true });
     } catch {
       setError("network");
     } finally {

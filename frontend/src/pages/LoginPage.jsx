@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { apiFetch } from "../api/apiBase.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import CustomerAuthLayout from "../components/customer/CustomerAuthLayout.jsx";
 import AuthPasswordField from "../components/customer/AuthPasswordField.jsx";
@@ -16,8 +17,19 @@ export default function LoginPage() {
   const [errorDetail, setErrorDetail] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (ready && token && user?.role === "customer") {
-    return <Navigate to="/" replace />;
+  if (!ready) {
+    return (
+      <CustomerAuthLayout variant="login">
+        <p className="text-center text-slate-400">{t("auth.loading")}</p>
+      </CustomerAuthLayout>
+    );
+  }
+
+  if (token && user) {
+    if (String(user.role) === "admin") {
+      return <Navigate to="/admin" replace />;
+    }
+    return <Navigate to="/account" replace />;
   }
 
   async function handleSubmit(e) {
@@ -26,7 +38,7 @@ export default function LoginPage() {
     setErrorDetail(null);
     setSubmitting(true);
     try {
-      const r = await fetch("/api/auth/login", {
+      const r = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
@@ -51,10 +63,10 @@ export default function LoginPage() {
         return;
       }
       login(data.token, data.user, remember);
-      if (data.user?.role === "admin") {
+      if (String(data.user?.role) === "admin") {
         navigate("/admin", { replace: true });
       } else {
-        navigate("/", { replace: true });
+        navigate("/account", { replace: true });
       }
     } catch {
       setError("network");
@@ -113,13 +125,12 @@ export default function LoginPage() {
             />
             {t("customerAuth.rememberMe")}
           </label>
-          <button
-            type="button"
+          <Link
+            to="/contact"
             className="font-medium text-brand-400 transition hover:text-brand-300"
-            onClick={(e) => e.preventDefault()}
           >
             {t("customerAuth.forgotPassword")}
-          </button>
+          </Link>
         </div>
 
         {error && (

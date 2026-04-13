@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "../api/apiBase.js";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -290,9 +291,9 @@ export default function AboutPage() {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetch("/api/products?limit=1").then((r) => (r.ok ? r.json() : {})),
-      fetch("/api/categories").then((r) => (r.ok ? r.json() : {})),
-      fetch("/api/brands").then((r) => (r.ok ? r.json() : {})),
+      apiFetch("/api/products?limit=1").then((r) => (r.ok ? r.json() : {})),
+      apiFetch("/api/categories").then((r) => (r.ok ? r.json() : {})),
+      apiFetch("/api/brands").then((r) => (r.ok ? r.json() : {})),
     ])
       .then(([prodData, catData, brandData]) => {
         if (cancelled) return;

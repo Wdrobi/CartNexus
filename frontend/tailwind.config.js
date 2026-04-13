@@ -41,12 +41,27 @@ export default {
           "0%": { backgroundPosition: "200% 0" },
           "100%": { backgroundPosition: "-200% 0" },
         },
+        marquee: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        "pulse-glow": {
+          "0%, 100%": { opacity: "0.4", transform: "scale(1)" },
+          "50%": { opacity: "0.75", transform: "scale(1.05)" },
+        },
+        "scroll-cue": {
+          "0%, 100%": { transform: "translateY(0)", opacity: "0.5" },
+          "50%": { transform: "translateY(6px)", opacity: "1" },
+        },
       },
       animation: {
         float: "float 5s ease-in-out infinite",
         "float-delayed": "float 5s ease-in-out 1.2s infinite",
         "float-slow": "float 7s ease-in-out 0.5s infinite",
         shimmer: "shimmer 3s linear infinite",
+        marquee: "marquee 40s linear infinite",
+        "pulse-glow": "pulse-glow 4s ease-in-out infinite",
+        "scroll-cue": "scroll-cue 2s ease-in-out infinite",
       },
     },
   },

@@ -20,6 +20,13 @@ import AdminLayout from "./pages/admin/AdminLayout.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import AdminProducts from "./pages/admin/AdminProducts.jsx";
 import AdminCategories from "./pages/admin/AdminCategories.jsx";
+import AdminBrands from "./pages/admin/AdminBrands.jsx";
+import AdminUsers from "./pages/admin/AdminUsers.jsx";
+import RequireCustomer from "./components/RequireCustomer.jsx";
+import AccountLayout from "./pages/account/AccountLayout.jsx";
+import AccountDashboard from "./pages/account/AccountDashboard.jsx";
+import AccountProfile from "./pages/account/AccountProfile.jsx";
+import AccountAddresses from "./pages/account/AccountAddresses.jsx";
 
 export default function App() {
   return (
@@ -40,12 +47,21 @@ export default function App() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route element={<RequireCustomer />}>
+          <Route path="/account" element={<AccountLayout />}>
+            <Route index element={<AccountDashboard />} />
+            <Route path="profile" element={<AccountProfile />} />
+            <Route path="addresses" element={<AccountAddresses />} />
+          </Route>
+        </Route>
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route element={<RequireAuth />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="categories" element={<AdminCategories />} />
+            <Route path="brands" element={<AdminBrands />} />
+            <Route path="users" element={<AdminUsers />} />
           </Route>
         </Route>
       </Routes>

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { apiFetch } from "../../api/apiBase.js";
 import { authFetch } from "../../api/authFetch.js";
 import { productName } from "../../utils/productText.js";
 import { formatPrice } from "../../utils/price.js";
 import { slugify } from "../../utils/slug.js";
+import { translateAdminError } from "../../utils/adminApiError.js";
 
 function emptyForm(categories) {
   return {
@@ -45,13 +47,13 @@ export default function AdminProducts() {
   }, []);
 
   const loadCategories = useCallback(() => {
-    return fetch("/api/categories")
+    return apiFetch("/api/categories")
       .then((r) => r.json())
       .then((data) => setCategories(data.categories || []));
   }, []);
 
   const loadBrands = useCallback(() => {
-    return fetch("/api/brands")
+    return apiFetch("/api/brands")
       .then((r) => r.json())
       .then((data) => setBrands(data.brands || []));
   }, []);
@@ -116,10 +118,21 @@ export default function AdminProducts() {
     e.preventDefault();
     setSaving(true);
     setError(null);
+    if (!categories.length) {
+      setError("no_categories");
+      setSaving(false);
+      return;
+    }
+    const catNum = Number(form.category_id);
+    if (!Number.isFinite(catNum) || catNum < 1) {
+      setError("invalid_category");
+      setSaving(false);
+      return;
+    }
     const slug =
       form.slug.trim() || slugify(form.name_en) || slugify(form.name_bn);
     const body = {
-      category_id: Number(form.category_id),
+      category_id: catNum,
       brand_id: form.brand_id === "" ? null : Number(form.brand_id),
       name_bn: form.name_bn,
       name_en: form.name_en,
@@ -181,7 +194,11 @@ export default function AdminProducts() {
         <button
           type="button"
           onClick={openCreate}
-          className="rounded-full bg-brand-500 px-6 py-2 font-semibold text-white hover:bg-brand-400"
+          disabled={!categories.length}
+          title={
+            !categories.length ? t("auth.errors.no_categories") : undefined
+          }
+          className="rounded-full bg-brand-500 px-6 py-2 font-semibold text-white hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-45"
         >
           {t("admin.crud.newProduct")}
         </button>
@@ -189,7 +206,7 @@ export default function AdminProducts() {
 
       {error && (
         <p className="mt-6 text-amber-200">
-          {t("admin.crud.saveError")}: <code>{error}</code>
+          {t("admin.crud.saveError")}: <span className="font-mono">{translateAdminError(t, error)}</span>
         </p>
       )}
 

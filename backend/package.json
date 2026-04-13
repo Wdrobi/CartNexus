@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "seed:generate": "node scripts/generate-mens-seed.mjs"
+    "seed:generate": "node scripts/generate-mens-seed.mjs",
+    "test:smoke": "node scripts/smoke-api.mjs"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -14,6 +15,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
     "mysql2": "^3.12.0"
   }
 }

@@ -9,18 +9,20 @@ router.get("/stats", async (_req, res) => {
     const [[{ c: categories }]] = await pool.query(
       `SELECT COUNT(*) AS c FROM categories`
     );
-    const [[{ p: products }]] = await pool.query(
+    const [[{ c: products }]] = await pool.query(
       `SELECT COUNT(*) AS c FROM products`
     );
-    const [[{ a: activeProducts }]] = await pool.query(
+    const [[{ c: activeProducts }]] = await pool.query(
       `SELECT COUNT(*) AS c FROM products WHERE is_active = 1`
     );
-    const [[{ u: users }]] = await pool.query(`SELECT COUNT(*) AS c FROM users`);
+    const [[{ c: users }]] = await pool.query(`SELECT COUNT(*) AS c FROM users`);
+    const [[{ c: brandCount }]] = await pool.query(`SELECT COUNT(*) AS c FROM brands`);
 
     res.json({
       categories: Number(categories),
       products: Number(products),
       activeProducts: Number(activeProducts),
+      brands: Number(brandCount),
       users: Number(users),
     });
   } catch (e) {
@@ -135,6 +137,122 @@ router.delete("/categories/:id", async (req, res) => {
       return res.status(409).json({ error: "category_has_products" });
     }
     const [result] = await pool.query(`DELETE FROM categories WHERE id = ?`, [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "not_found" });
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.get("/brands", async (_req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, name_bn, name_en, slug, sort_order, created_at
+       FROM brands
+       ORDER BY sort_order ASC, id ASC`
+    );
+    res.json({ brands: rows });
+  } catch (e) {
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.post("/brands", async (req, res) => {
+  const { name_bn, name_en, slug: rawSlug, sort_order } = req.body || {};
+  if (!name_bn || !name_en) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  const slug = rawSlug ? slugify(rawSlug) : slugify(name_en);
+  if (!slug) {
+    return res.status(400).json({ error: "invalid_slug" });
+  }
+  const order = sort_order != null ? Number(sort_order) : 0;
+  try {
+    const [result] = await pool.query(
+      `INSERT INTO brands (name_bn, name_en, slug, sort_order)
+       VALUES (?, ?, ?, ?)`,
+      [name_bn, name_en, slug, Number.isFinite(order) ? order : 0]
+    );
+    const [rows] = await pool.query(
+      `SELECT id, name_bn, name_en, slug, sort_order, created_at FROM brands WHERE id = ?`,
+      [result.insertId]
+    );
+    res.status(201).json({ brand: rows[0] });
+  } catch (e) {
+    if (e.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ error: "duplicate_slug" });
+    }
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.patch("/brands/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    return res.status(400).json({ error: "invalid_id" });
+  }
+  const { name_bn, name_en, slug: rawSlug, sort_order } = req.body || {};
+  const fields = [];
+  const values = [];
+  if (name_bn != null) {
+    fields.push("name_bn = ?");
+    values.push(name_bn);
+  }
+  if (name_en != null) {
+    fields.push("name_en = ?");
+    values.push(name_en);
+  }
+  if (rawSlug != null) {
+    const s = slugify(rawSlug);
+    if (!s) return res.status(400).json({ error: "invalid_slug" });
+    fields.push("slug = ?");
+    values.push(s);
+  }
+  if (sort_order != null) {
+    fields.push("sort_order = ?");
+    values.push(Number(sort_order));
+  }
+  if (!fields.length) {
+    return res.status(400).json({ error: "no_updates" });
+  }
+  values.push(id);
+  try {
+    const [result] = await pool.query(
+      `UPDATE brands SET ${fields.join(", ")} WHERE id = ?`,
+      values
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "not_found" });
+    }
+    const [rows] = await pool.query(
+      `SELECT id, name_bn, name_en, slug, sort_order, created_at FROM brands WHERE id = ?`,
+      [id]
+    );
+    res.json({ brand: rows[0] });
+  } catch (e) {
+    if (e.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ error: "duplicate_slug" });
+    }
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.delete("/brands/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    return res.status(400).json({ error: "invalid_id" });
+  }
+  try {
+    const [[{ c }]] = await pool.query(
+      `SELECT COUNT(*) AS c FROM products WHERE brand_id = ?`,
+      [id]
+    );
+    if (Number(c) > 0) {
+      return res.status(409).json({ error: "brand_has_products" });
+    }
+    const [result] = await pool.query(`DELETE FROM brands WHERE id = ?`, [id]);
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "not_found" });
     }
@@ -415,6 +533,59 @@ router.delete("/products/:id", async (req, res) => {
       return res.status(404).json({ error: "not_found" });
     }
     res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.get("/users", async (_req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, email, name, role, created_at FROM users ORDER BY id DESC`
+    );
+    res.json({ users: rows });
+  } catch (e) {
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.patch("/users/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    return res.status(400).json({ error: "invalid_id" });
+  }
+  const { role } = req.body || {};
+  if (role !== "admin" && role !== "customer") {
+    return res.status(400).json({ error: "invalid_role" });
+  }
+  const adminId = Number(req.user?.id);
+  if (!Number.isFinite(adminId)) {
+    return res.status(500).json({ error: "server_error" });
+  }
+  if (id === adminId && role === "customer") {
+    return res.status(403).json({ error: "cannot_demote_self" });
+  }
+  try {
+    const [[target]] = await pool.query(`SELECT id, role FROM users WHERE id = ?`, [
+      id,
+    ]);
+    if (!target) {
+      return res.status(404).json({ error: "not_found" });
+    }
+    if (target.role === "admin" && role === "customer") {
+      const [[{ c }]] = await pool.query(
+        `SELECT COUNT(*) AS c FROM users WHERE role = 'admin'`
+      );
+      if (Number(c) <= 1) {
+        return res.status(403).json({ error: "last_admin" });
+      }
+    }
+    await pool.query(`UPDATE users SET role = ? WHERE id = ?`, [role, id]);
+    const [[updated]] = await pool.query(
+      `SELECT id, email, name, role, created_at FROM users WHERE id = ?`,
+      [id]
+    );
+    res.json({ user: updated });
   } catch (e) {
     res.status(500).json({ error: "database_error", message: e.message });
   }

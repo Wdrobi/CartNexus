@@ -1,0 +1,5 @@
+CartNexus DB changelog (append newest at bottom)
+------------------------------------------------
+2026-04-09 — Aligned repo SQL with “profile + addresses” and “brands + brand_id” migrations already applied in MySQL: phpmyadmin-setup.sql now includes user_addresses; migration headers clarified; Cursor rule + this log added for future code↔DB sync.
+2026-04-12 — No schema change: backend npm script test:smoke (scripts/smoke-api.mjs) verifies API + admin JWT paths against running server.
+2026-04-12 — Profile avatars: POST /api/auth/profile/avatar (multipart) stores files under backend/uploads/avatars; avatar_url remains VARCHAR; static /uploads; clear avatar deletes file when path is /uploads/avatars/*.
