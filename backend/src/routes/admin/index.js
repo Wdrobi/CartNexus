@@ -15,9 +15,16 @@ import {
 } from "../../utils/adminProductHelpers.js";
 import {
   getAdminDashboardPayload,
-  getAdminOrdersList,
   upsertAdminTaskCompletion,
 } from "../../utils/adminDashboard.js";
+import { getAdminOrdersList } from "../../utils/adminOrdersList.js";
+import {
+  getInventorySummary,
+  listInventorySkus,
+  listStockMovements,
+  adjustInventoryStock,
+} from "../../utils/adminInventory.js";
+import { broadcastDashboardRefresh } from "../../realtime/adminWs.js";
 
 const router = Router();
 
@@ -131,12 +138,133 @@ router.patch("/dashboard/tasks", async (req, res) => {
 });
 
 router.get("/orders", async (req, res) => {
-  const lim = Math.min(Math.max(parseInt(String(req.query.limit || "80"), 10) || 80, 1), 200);
   try {
-    const orders = await getAdminOrdersList(pool, lim);
-    res.json({ orders });
+    const data = await getAdminOrdersList(pool, {
+      page: req.query.page,
+      pageSize: req.query.pageSize,
+      q: req.query.q,
+      status: req.query.status,
+      sort: req.query.sort,
+      dateFrom: req.query.dateFrom,
+      dateTo: req.query.dateTo,
+    });
+    res.json(data);
   } catch (e) {
     res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+const ADMIN_ORDER_STATUSES = new Set(["pending", "confirmed", "shipped", "delivered", "cancelled"]);
+
+router.patch("/orders/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id) || id <= 0) {
+    return res.status(400).json({ error: "invalid_id" });
+  }
+  const status = String(req.body?.status ?? "").trim().toLowerCase();
+  if (!ADMIN_ORDER_STATUSES.has(status)) {
+    return res.status(400).json({ error: "invalid_order_status" });
+  }
+  try {
+    const [result] = await pool.query(`UPDATE orders SET status = ? WHERE id = ?`, [status, id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "not_found" });
+    }
+    const [[row]] = await pool.query(
+      `SELECT id, order_number, user_id, customer_name, phone, subtotal, delivery_fee, total, status,
+              payment_method, delivery_zone, delivery_address, created_at
+       FROM orders WHERE id = ? LIMIT 1`,
+      [id]
+    );
+    try {
+      broadcastDashboardRefresh("order_status");
+    } catch {
+      /* non-fatal */
+    }
+    res.json({ order: row });
+  } catch (e) {
+    if (e.code === "ER_NO_SUCH_TABLE") {
+      return res.status(503).json({ error: "orders_table_missing", message: "Run db/migration_orders.sql on MySQL." });
+    }
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.get("/inventory/summary", async (req, res) => {
+  try {
+    const low = req.query.lowThreshold != null ? Number(req.query.lowThreshold) : undefined;
+    const summary = await getInventorySummary(pool, {
+      lowThreshold: low,
+      categoryId: req.query.categoryId,
+      brandId: req.query.brandId,
+    });
+    res.json(summary);
+  } catch (e) {
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.get("/inventory", async (req, res) => {
+  try {
+    const data = await listInventorySkus(pool, {
+      q: req.query.q,
+      status: req.query.status,
+      page: req.query.page,
+      pageSize: req.query.pageSize,
+      lowThreshold: req.query.lowThreshold != null ? Number(req.query.lowThreshold) : undefined,
+      categoryId: req.query.categoryId,
+      brandId: req.query.brandId,
+      sort: req.query.sort,
+    });
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.get("/inventory/movements", async (req, res) => {
+  try {
+    const limit = req.query.limit;
+    const offset = req.query.offset;
+    const movements = await listStockMovements(pool, { limit, offset });
+    res.json({ movements });
+  } catch (e) {
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.post("/inventory/adjust", async (req, res) => {
+  try {
+    const adminId = req.user?.id != null ? Number(req.user.id) : null;
+    const result = await adjustInventoryStock(pool, {
+      productId: req.body?.productId,
+      variantId: req.body?.variantId,
+      qtyDelta: req.body?.qtyDelta,
+      reason: req.body?.reason,
+      note: req.body?.note,
+      userId: adminId,
+    });
+    try {
+      broadcastDashboardRefresh("inventory_adjust");
+    } catch {
+      /* non-fatal */
+    }
+    res.json(result);
+  } catch (e) {
+    const code = e?.code ?? e?.message;
+    if (code === "invalid_product" || code === "invalid_qty" || code === "invalid_reason") {
+      return res.status(400).json({ error: code });
+    }
+    if (code === "variant_not_found" || code === "product_not_found") {
+      return res.status(404).json({ error: code });
+    }
+    if (code === "insufficient_stock") {
+      return res.status(400).json({ error: code });
+    }
+    if (code === "use_variant_stock") {
+      return res.status(400).json({ error: code });
+    }
+    res.status(500).json({ error: "database_error", message: String(e?.message || e) });
   }
 });
 

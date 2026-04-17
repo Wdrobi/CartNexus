@@ -146,6 +146,23 @@ CREATE TABLE product_color_variants (
   CONSTRAINT fk_pcv_product FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
 );
 
+CREATE TABLE inventory_stock_movements (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  product_id INT UNSIGNED NOT NULL,
+  variant_id INT UNSIGNED NULL,
+  qty_delta INT NOT NULL,
+  qty_after INT UNSIGNED NOT NULL,
+  reason VARCHAR(32) NOT NULL DEFAULT 'adjustment',
+  note VARCHAR(512) NULL,
+  created_by INT UNSIGNED NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_inv_mov_product (product_id),
+  KEY idx_inv_mov_created (created_at),
+  CONSTRAINT fk_inv_mov_product FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
+  CONSTRAINT fk_inv_mov_variant FOREIGN KEY (variant_id) REFERENCES product_color_variants (id) ON DELETE SET NULL,
+  CONSTRAINT fk_inv_mov_user FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
+);
+
 CREATE TABLE orders (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NULL,

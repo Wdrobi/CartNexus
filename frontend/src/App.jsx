@@ -28,6 +28,7 @@ import AdminBrands from "./pages/admin/AdminBrands.jsx";
 import AdminUsers from "./pages/admin/AdminUsers.jsx";
 import AdminHomeHero from "./pages/admin/AdminHomeHero.jsx";
 import AdminOrders from "./pages/admin/AdminOrders.jsx";
+import AdminInventory from "./pages/admin/AdminInventory.jsx";
 import RequireCustomer from "./components/RequireCustomer.jsx";
 import AccountLayout from "./pages/account/AccountLayout.jsx";
 import AccountDashboard from "./pages/account/AccountDashboard.jsx";
@@ -71,6 +72,7 @@ export default function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="orders" element={<AdminOrders />} />
+            <Route path="inventory" element={<AdminInventory />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="brands" element={<AdminBrands />} />

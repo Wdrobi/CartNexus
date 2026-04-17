@@ -181,23 +181,6 @@ function fillLastNMonthsFromServer(n, rows, valueKey, serverCurDate) {
 
 /**
  * @param {import("mysql2/promise").Pool} db
- */
-/**
- * @param {import("mysql2/promise").Pool} db
- * @param {number} limit
- */
-export async function getAdminOrdersList(db, limit) {
-  if (!(await tableExists(db, "orders"))) return [];
-  const [rows] = await db.query(
-    `SELECT id, order_number, user_id, customer_name, phone, total, status, payment_method, delivery_zone, created_at
-     FROM orders ORDER BY id DESC LIMIT ?`,
-    [limit]
-  );
-  return rows;
-}
-
-/**
- * @param {import("mysql2/promise").Pool} db
  * @param {number|string|undefined} userId
  * @returns {Promise<Record<string, boolean>>}
  */
