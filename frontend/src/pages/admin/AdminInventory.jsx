@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { authFetch } from "../../api/authFetch.js";
 import { brandName, productName } from "../../utils/productText.js";
 import { translateAdminError } from "../../utils/adminApiError.js";
+import { PortalSelect } from "../../components/admin/PortalSelect.jsx";
 
 function skuLabel(row, lang) {
   const base = productName({ name_en: row.productNameEn, name_bn: row.productNameBn }, lang);
@@ -286,75 +287,73 @@ export default function AdminInventory() {
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-slate-500">{t("admin.inventory.filterCategory")}</span>
-              <select
+              <PortalSelect
                 value={categoryId}
-                onChange={(e) => {
-                  setCategoryId(e.target.value);
+                onChange={(v) => {
+                  setCategoryId(String(v));
                   setPage(1);
                 }}
-                className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-brand-500/40"
-              >
-                <option value="">{t("admin.inventory.filterCategoryAll")}</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={String(c.id)}>
-                    {lang?.startsWith("bn") ? c.name_bn : c.name_en}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: "", label: t("admin.inventory.filterCategoryAll") },
+                  ...categories.map((c) => ({
+                    value: String(c.id),
+                    label: lang?.startsWith("bn") ? c.name_bn : c.name_en,
+                  })),
+                ]}
+              />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-slate-500">{t("admin.inventory.filterBrand")}</span>
-              <select
+              <PortalSelect
                 value={brandId}
-                onChange={(e) => {
-                  setBrandId(e.target.value);
+                onChange={(v) => {
+                  setBrandId(String(v));
                   setPage(1);
                 }}
-                className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-brand-500/40"
-              >
-                <option value="">{t("admin.inventory.brandAll")}</option>
-                <option value="none">{t("admin.inventory.brandNone")}</option>
-                {brands.map((b) => (
-                  <option key={b.id} value={String(b.id)}>
-                    {lang?.startsWith("bn") ? b.name_bn : b.name_en}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: "", label: t("admin.inventory.brandAll") },
+                  { value: "none", label: t("admin.inventory.brandNone") },
+                  ...brands.map((b) => ({
+                    value: String(b.id),
+                    label: lang?.startsWith("bn") ? b.name_bn : b.name_en,
+                  })),
+                ]}
+              />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-slate-500">{t("admin.inventory.filterStatus")}</span>
-              <select
+              <PortalSelect
                 value={status}
-                onChange={(e) => {
-                  setStatus(e.target.value);
+                onChange={(v) => {
+                  setStatus(String(v));
                   setPage(1);
                 }}
-                className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-brand-500/40"
-              >
-                <option value="all">{t("admin.inventory.statusAll")}</option>
-                <option value="out">{t("admin.inventory.statusOut")}</option>
-                <option value="low">{t("admin.inventory.statusLow")}</option>
-                <option value="ok">{t("admin.inventory.statusOk")}</option>
-              </select>
+                options={[
+                  { value: "all", label: t("admin.inventory.statusAll") },
+                  { value: "out", label: t("admin.inventory.statusOut") },
+                  { value: "low", label: t("admin.inventory.statusLow") },
+                  { value: "ok", label: t("admin.inventory.statusOk") },
+                ]}
+              />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-slate-500">{t("admin.inventory.sortBy")}</span>
-              <select
+              <PortalSelect
                 value={sort}
-                onChange={(e) => {
-                  setSort(e.target.value);
+                onChange={(v) => {
+                  setSort(String(v));
                   setPage(1);
                 }}
-                className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-brand-500/40"
-              >
-                <option value="stock_asc">{t("admin.inventory.sortStockAsc")}</option>
-                <option value="stock_desc">{t("admin.inventory.sortStockDesc")}</option>
-                <option value="name_asc">{t("admin.inventory.sortNameAsc")}</option>
-                <option value="name_desc">{t("admin.inventory.sortNameDesc")}</option>
-                <option value="category_asc">{t("admin.inventory.sortCategory")}</option>
-                <option value="brand_asc">{t("admin.inventory.sortBrand")}</option>
-                <option value="sku_asc">{t("admin.inventory.sortSku")}</option>
-              </select>
+                options={[
+                  { value: "stock_asc", label: t("admin.inventory.sortStockAsc") },
+                  { value: "stock_desc", label: t("admin.inventory.sortStockDesc") },
+                  { value: "name_asc", label: t("admin.inventory.sortNameAsc") },
+                  { value: "name_desc", label: t("admin.inventory.sortNameDesc") },
+                  { value: "category_asc", label: t("admin.inventory.sortCategory") },
+                  { value: "brand_asc", label: t("admin.inventory.sortBrand") },
+                  { value: "sku_asc", label: t("admin.inventory.sortSku") },
+                ]}
+              />
             </label>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -587,17 +586,16 @@ export default function AdminInventory() {
             </label>
             <label className="mt-3 block">
               <span className="text-xs text-slate-500">{t("admin.inventory.adjustReason")}</span>
-              <select
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-white"
-              >
-                {["adjustment", "received", "return", "damage", "correction", "count"].map((r) => (
-                  <option key={r} value={r}>
-                    {t(`admin.inventory.reason.${r}`)}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-1">
+                <PortalSelect
+                  value={reason}
+                  onChange={(v) => setReason(String(v))}
+                  options={["adjustment", "received", "return", "damage", "correction", "count"].map((r) => ({
+                    value: r,
+                    label: t(`admin.inventory.reason.${r}`),
+                  }))}
+                />
+              </div>
             </label>
             <label className="mt-3 block">
               <span className="text-xs text-slate-500">{t("admin.inventory.adjustNote")}</span>
