@@ -1,8 +1,64 @@
 import { Router } from "express";
 import { pool } from "../../db/pool.js";
 import { slugify } from "../../utils/slug.js";
+import {
+  defaultHomeHero,
+  normalizeHexColor,
+  serializeHomeHeroRow,
+} from "../../utils/homeHeroDefaults.js";
+import {
+  parseJsonColumn,
+  normalizePageLayout,
+  normalizeDescriptionSections,
+  normalizeColorVariants,
+  replaceProductColorVariants,
+} from "../../utils/adminProductHelpers.js";
+import {
+  getAdminDashboardPayload,
+  getAdminOrdersList,
+  upsertAdminTaskCompletion,
+} from "../../utils/adminDashboard.js";
 
 const router = Router();
+
+async function fetchAdminProductDetail(id) {
+  const [rows] = await pool.query(
+    `SELECT p.id, p.category_id, p.brand_id, p.name_bn, p.name_en, p.slug,
+            p.description_bn, p.description_en, p.description_sections_en, p.description_sections_bn,
+            p.price, p.compare_at_price, p.image_url, p.stock, p.is_active, p.created_at,
+            c.name_bn AS category_name_bn, c.name_en AS category_name_en,
+            b.name_bn AS brand_name_bn, b.name_en AS brand_name_en, b.slug AS brand_slug
+     FROM products p
+     INNER JOIN categories c ON c.id = p.category_id
+     LEFT JOIN brands b ON b.id = p.brand_id
+     WHERE p.id = ?
+     LIMIT 1`,
+    [id]
+  );
+  if (!rows.length) return null;
+  const row = rows[0];
+  const rawEn = row.description_sections_en;
+  const rawBn = row.description_sections_bn;
+  let colorVariants = [];
+  try {
+    const [vrows] = await pool.query(
+      `SELECT id, sort_order, name_en, name_bn, image_url, stock
+       FROM product_color_variants
+       WHERE product_id = ?
+       ORDER BY sort_order ASC, id ASC`,
+      [id]
+    );
+    colorVariants = vrows || [];
+  } catch {
+    colorVariants = [];
+  }
+  return {
+    ...row,
+    description_sections_en: parseJsonColumn(rawEn),
+    description_sections_bn: parseJsonColumn(rawBn),
+    color_variants: colorVariants,
+  };
+}
 
 router.get("/stats", async (_req, res) => {
   try {
@@ -30,10 +86,64 @@ router.get("/stats", async (_req, res) => {
   }
 });
 
+router.get("/dashboard", async (req, res) => {
+  try {
+    const revenueFrom =
+      req.query.revenueFrom != null && String(req.query.revenueFrom).trim() !== ""
+        ? String(req.query.revenueFrom).trim().slice(0, 10)
+        : undefined;
+    const revenueTo =
+      req.query.revenueTo != null && String(req.query.revenueTo).trim() !== ""
+        ? String(req.query.revenueTo).trim().slice(0, 10)
+        : undefined;
+    const salesRange = req.query.salesRange != null && req.query.salesRange !== "" ? String(req.query.salesRange) : "7d";
+    const payload = await getAdminDashboardPayload(pool, {
+      revenueFrom,
+      revenueTo,
+      salesRange,
+      userId: req.user?.id,
+    });
+    res.json(payload);
+  } catch (e) {
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.patch("/dashboard/tasks", async (req, res) => {
+  try {
+    const taskKey = String(req.body?.taskKey ?? "").trim().slice(0, 190);
+    if (!taskKey) {
+      return res.status(400).json({ error: "task_key_required" });
+    }
+    const done = Boolean(req.body?.done);
+    await upsertAdminTaskCompletion(pool, req.user.id, taskKey, done);
+    res.json({ ok: true });
+  } catch (e) {
+    const msg = String(e?.message || e);
+    if (msg === "task_table_missing") {
+      return res.status(503).json({ error: "task_table_missing", message: "Run db/migration_admin_dashboard_tasks.sql" });
+    }
+    if (msg === "invalid_task_payload") {
+      return res.status(400).json({ error: "invalid_task_payload" });
+    }
+    res.status(500).json({ error: "database_error", message: msg });
+  }
+});
+
+router.get("/orders", async (req, res) => {
+  const lim = Math.min(Math.max(parseInt(String(req.query.limit || "80"), 10) || 80, 1), 200);
+  try {
+    const orders = await getAdminOrdersList(pool, lim);
+    res.json({ orders });
+  } catch (e) {
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
 router.get("/categories", async (_req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT id, name_bn, name_en, slug, sort_order, created_at
+      `SELECT id, name_bn, name_en, slug, sort_order, page_layout, created_at
        FROM categories
        ORDER BY sort_order ASC, id ASC`
     );
@@ -44,7 +154,7 @@ router.get("/categories", async (_req, res) => {
 });
 
 router.post("/categories", async (req, res) => {
-  const { name_bn, name_en, slug: rawSlug, sort_order } = req.body || {};
+  const { name_bn, name_en, slug: rawSlug, sort_order, page_layout: layoutRaw } = req.body || {};
   if (!name_bn || !name_en) {
     return res.status(400).json({ error: "missing_fields" });
   }
@@ -52,15 +162,19 @@ router.post("/categories", async (req, res) => {
   if (!slug) {
     return res.status(400).json({ error: "invalid_slug" });
   }
+  const page_layout = normalizePageLayout(layoutRaw);
+  if (page_layout === null) {
+    return res.status(400).json({ error: "invalid_page_layout" });
+  }
   const order = sort_order != null ? Number(sort_order) : 0;
   try {
     const [result] = await pool.query(
-      `INSERT INTO categories (name_bn, name_en, slug, sort_order)
-       VALUES (?, ?, ?, ?)`,
-      [name_bn, name_en, slug, Number.isFinite(order) ? order : 0]
+      `INSERT INTO categories (name_bn, name_en, slug, sort_order, page_layout)
+       VALUES (?, ?, ?, ?, ?)`,
+      [name_bn, name_en, slug, Number.isFinite(order) ? order : 0, page_layout]
     );
     const [rows] = await pool.query(
-      `SELECT id, name_bn, name_en, slug, sort_order, created_at FROM categories WHERE id = ?`,
+      `SELECT id, name_bn, name_en, slug, sort_order, page_layout, created_at FROM categories WHERE id = ?`,
       [result.insertId]
     );
     res.status(201).json({ category: rows[0] });
@@ -77,7 +191,7 @@ router.patch("/categories/:id", async (req, res) => {
   if (!Number.isFinite(id)) {
     return res.status(400).json({ error: "invalid_id" });
   }
-  const { name_bn, name_en, slug: rawSlug, sort_order } = req.body || {};
+  const { name_bn, name_en, slug: rawSlug, sort_order, page_layout: layoutRaw } = req.body || {};
   const fields = [];
   const values = [];
   if (name_bn != null) {
@@ -98,6 +212,14 @@ router.patch("/categories/:id", async (req, res) => {
     fields.push("sort_order = ?");
     values.push(Number(sort_order));
   }
+  if (layoutRaw !== undefined) {
+    const page_layout = normalizePageLayout(layoutRaw);
+    if (page_layout === null) {
+      return res.status(400).json({ error: "invalid_page_layout" });
+    }
+    fields.push("page_layout = ?");
+    values.push(page_layout);
+  }
   if (!fields.length) {
     return res.status(400).json({ error: "no_updates" });
   }
@@ -111,7 +233,7 @@ router.patch("/categories/:id", async (req, res) => {
       return res.status(404).json({ error: "not_found" });
     }
     const [rows] = await pool.query(
-      `SELECT id, name_bn, name_en, slug, sort_order, created_at FROM categories WHERE id = ?`,
+      `SELECT id, name_bn, name_en, slug, sort_order, page_layout, created_at FROM categories WHERE id = ?`,
       [id]
     );
     res.json({ category: rows[0] });
@@ -281,6 +403,22 @@ router.get("/products", async (_req, res) => {
   }
 });
 
+router.get("/products/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    return res.status(400).json({ error: "invalid_id" });
+  }
+  try {
+    const product = await fetchAdminProductDetail(id);
+    if (!product) {
+      return res.status(404).json({ error: "not_found" });
+    }
+    res.json({ product });
+  } catch (e) {
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
 router.post("/products", async (req, res) => {
   const b = req.body || {};
   const {
@@ -291,6 +429,9 @@ router.post("/products", async (req, res) => {
     slug: rawSlug,
     description_bn,
     description_en,
+    description_sections_en: secEnRaw,
+    description_sections_bn: secBnRaw,
+    color_variants: variantsRaw,
     price,
     compare_at_price,
     image_url,
@@ -332,24 +473,38 @@ router.post("/products", async (req, res) => {
     compare = null;
   }
 
+  const secEn = normalizeDescriptionSections(secEnRaw);
+  if (!secEn.ok) {
+    return res.status(400).json({ error: secEn.error });
+  }
+  const secBn = normalizeDescriptionSections(secBnRaw);
+  if (!secBn.ok) {
+    return res.status(400).json({ error: secBn.error });
+  }
+  const variants = normalizeColorVariants(variantsRaw);
+  if (!variants.ok) {
+    return res.status(400).json({ error: variants.error });
+  }
+
+  const conn = await pool.getConnection();
   try {
-    const [[cat]] = await pool.query(`SELECT id FROM categories WHERE id = ?`, [
-      catId,
-    ]);
+    const [[cat]] = await conn.query(`SELECT id FROM categories WHERE id = ?`, [catId]);
     if (!cat) {
       return res.status(400).json({ error: "category_not_found" });
     }
     if (brandId != null) {
-      const [[br]] = await pool.query(`SELECT id FROM brands WHERE id = ?`, [brandId]);
+      const [[br]] = await conn.query(`SELECT id FROM brands WHERE id = ?`, [brandId]);
       if (!br) {
         return res.status(400).json({ error: "brand_not_found" });
       }
     }
-    const [result] = await pool.query(
+    await conn.beginTransaction();
+    const [result] = await conn.query(
       `INSERT INTO products (
         category_id, brand_id, name_bn, name_en, slug, description_bn, description_en,
+        description_sections_en, description_sections_bn,
         price, compare_at_price, image_url, stock, is_active
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         catId,
         brandId,
@@ -358,6 +513,8 @@ router.post("/products", async (req, res) => {
         slug,
         description_bn ?? null,
         description_en ?? null,
+        secEn.value,
+        secBn.value,
         pr,
         compare,
         image_url || null,
@@ -365,24 +522,23 @@ router.post("/products", async (req, res) => {
         active,
       ]
     );
-    const [rows] = await pool.query(
-      `SELECT p.id, p.category_id, p.brand_id, p.name_bn, p.name_en, p.slug,
-              p.description_bn, p.description_en, p.price, p.compare_at_price,
-              p.image_url, p.stock, p.is_active, p.created_at,
-              c.name_bn AS category_name_bn, c.name_en AS category_name_en,
-              b.name_bn AS brand_name_bn, b.name_en AS brand_name_en, b.slug AS brand_slug
-       FROM products p
-       INNER JOIN categories c ON c.id = p.category_id
-       LEFT JOIN brands b ON b.id = p.brand_id
-       WHERE p.id = ?`,
-      [result.insertId]
-    );
-    res.status(201).json({ product: rows[0] });
+    const insertId = result.insertId;
+    await replaceProductColorVariants(conn, insertId, variants.value);
+    await conn.commit();
+    const product = await fetchAdminProductDetail(insertId);
+    res.status(201).json({ product });
   } catch (e) {
+    try {
+      await conn.rollback();
+    } catch {
+      /* ignore */
+    }
     if (e.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ error: "duplicate_slug" });
     }
     res.status(500).json({ error: "database_error", message: e.message });
+  } finally {
+    conn.release();
   }
 });
 
@@ -434,6 +590,22 @@ router.patch("/products/:id", async (req, res) => {
     fields.push("description_en = ?");
     values.push(b.description_en);
   }
+  if (b.description_sections_en !== undefined) {
+    const sec = normalizeDescriptionSections(b.description_sections_en);
+    if (!sec.ok) {
+      return res.status(400).json({ error: sec.error });
+    }
+    fields.push("description_sections_en = ?");
+    values.push(sec.value);
+  }
+  if (b.description_sections_bn !== undefined) {
+    const sec = normalizeDescriptionSections(b.description_sections_bn);
+    if (!sec.ok) {
+      return res.status(400).json({ error: sec.error });
+    }
+    fields.push("description_sections_bn = ?");
+    values.push(sec.value);
+  }
   if (b.price != null) {
     const pr = Number(b.price);
     if (!Number.isFinite(pr) || pr < 0) {
@@ -472,14 +644,27 @@ router.patch("/products/:id", async (req, res) => {
     values.push(b.is_active === false || b.is_active === 0 ? 0 : 1);
   }
 
-  if (!fields.length) {
+  let variantsNorm = null;
+  if (b.color_variants !== undefined) {
+    const nv = normalizeColorVariants(b.color_variants);
+    if (!nv.ok) {
+      return res.status(400).json({ error: nv.error });
+    }
+    variantsNorm = nv.value;
+  }
+
+  if (!fields.length && variantsNorm === null) {
     return res.status(400).json({ error: "no_updates" });
   }
-  values.push(id);
 
+  const conn = await pool.getConnection();
   try {
+    const [[exists]] = await conn.query(`SELECT id FROM products WHERE id = ?`, [id]);
+    if (!exists) {
+      return res.status(404).json({ error: "not_found" });
+    }
     if (b.category_id != null) {
-      const [[cat]] = await pool.query(`SELECT id FROM categories WHERE id = ?`, [
+      const [[cat]] = await conn.query(`SELECT id FROM categories WHERE id = ?`, [
         Number(b.category_id),
       ]);
       if (!cat) {
@@ -487,38 +672,39 @@ router.patch("/products/:id", async (req, res) => {
       }
     }
     if (b.brand_id !== undefined && b.brand_id !== null && b.brand_id !== "") {
-      const [[br]] = await pool.query(`SELECT id FROM brands WHERE id = ?`, [
+      const [[br]] = await conn.query(`SELECT id FROM brands WHERE id = ?`, [
         Number(b.brand_id),
       ]);
       if (!br) {
         return res.status(400).json({ error: "brand_not_found" });
       }
     }
-    const [result] = await pool.query(
-      `UPDATE products SET ${fields.join(", ")} WHERE id = ?`,
-      values
-    );
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "not_found" });
+    await conn.beginTransaction();
+    if (fields.length) {
+      values.push(id);
+      await conn.query(
+        `UPDATE products SET ${fields.join(", ")} WHERE id = ?`,
+        values
+      );
     }
-    const [rows] = await pool.query(
-      `SELECT p.id, p.category_id, p.brand_id, p.name_bn, p.name_en, p.slug,
-              p.description_bn, p.description_en, p.price, p.compare_at_price,
-              p.image_url, p.stock, p.is_active, p.created_at,
-              c.name_bn AS category_name_bn, c.name_en AS category_name_en,
-              b.name_bn AS brand_name_bn, b.name_en AS brand_name_en, b.slug AS brand_slug
-       FROM products p
-       INNER JOIN categories c ON c.id = p.category_id
-       LEFT JOIN brands b ON b.id = p.brand_id
-       WHERE p.id = ?`,
-      [id]
-    );
-    res.json({ product: rows[0] });
+    if (variantsNorm !== null) {
+      await replaceProductColorVariants(conn, id, variantsNorm);
+    }
+    await conn.commit();
+    const product = await fetchAdminProductDetail(id);
+    res.json({ product });
   } catch (e) {
+    try {
+      await conn.rollback();
+    } catch {
+      /* ignore */
+    }
     if (e.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ error: "duplicate_slug" });
     }
     res.status(500).json({ error: "database_error", message: e.message });
+  } finally {
+    conn.release();
   }
 });
 
@@ -534,6 +720,98 @@ router.delete("/products/:id", async (req, res) => {
     }
     res.json({ ok: true });
   } catch (e) {
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.get("/home-hero", async (_req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, headline_en, headline_bn, subtext_en, subtext_bn,
+              cta_label_en, cta_label_bn, cta_url, image_1_url, image_2_url,
+              gradient_from, gradient_to, updated_at
+       FROM home_hero WHERE id = 1 LIMIT 1`
+    );
+    if (!rows.length) {
+      return res.json({ hero: defaultHomeHero() });
+    }
+    res.json({ hero: serializeHomeHeroRow(rows[0]) });
+  } catch (e) {
+    if (e.code === "ER_NO_SUCH_TABLE") {
+      return res.status(503).json({
+        error: "home_hero_table_missing",
+        message: "Run db/migration_home_hero.sql (or full phpmyadmin-setup.sql).",
+      });
+    }
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.patch("/home-hero", async (req, res) => {
+  const b = req.body || {};
+  const d = defaultHomeHero();
+  const headline_en = String(b.headline_en ?? d.headline_en).trim().slice(0, 280) || d.headline_en;
+  const headline_bn = String(b.headline_bn ?? "").trim().slice(0, 280);
+  const subtext_en = String(b.subtext_en ?? d.subtext_en).trim().slice(0, 4000);
+  const subtext_bn = String(b.subtext_bn ?? "").trim().slice(0, 4000);
+  const cta_label_en = String(b.cta_label_en ?? d.cta_label_en).trim().slice(0, 160) || d.cta_label_en;
+  const cta_label_bn = String(b.cta_label_bn ?? "").trim().slice(0, 160);
+  let cta_url = String(b.cta_url ?? d.cta_url).trim().slice(0, 512);
+  if (!cta_url.startsWith("/") && !/^https?:\/\//i.test(cta_url)) {
+    cta_url = d.cta_url;
+  }
+  const image_1_url = String(b.image_1_url ?? "").trim().slice(0, 512) || null;
+  const image_2_url = String(b.image_2_url ?? "").trim().slice(0, 512) || null;
+  const gradient_from = normalizeHexColor(b.gradient_from, d.gradient_from);
+  const gradient_to = normalizeHexColor(b.gradient_to, d.gradient_to);
+
+  try {
+    await pool.query(
+      `INSERT INTO home_hero (
+        id, headline_en, headline_bn, subtext_en, subtext_bn,
+        cta_label_en, cta_label_bn, cta_url, image_1_url, image_2_url,
+        gradient_from, gradient_to
+      ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        headline_en = VALUES(headline_en),
+        headline_bn = VALUES(headline_bn),
+        subtext_en = VALUES(subtext_en),
+        subtext_bn = VALUES(subtext_bn),
+        cta_label_en = VALUES(cta_label_en),
+        cta_label_bn = VALUES(cta_label_bn),
+        cta_url = VALUES(cta_url),
+        image_1_url = VALUES(image_1_url),
+        image_2_url = VALUES(image_2_url),
+        gradient_from = VALUES(gradient_from),
+        gradient_to = VALUES(gradient_to)`,
+      [
+        headline_en,
+        headline_bn,
+        subtext_en || null,
+        subtext_bn || null,
+        cta_label_en,
+        cta_label_bn,
+        cta_url,
+        image_1_url,
+        image_2_url,
+        gradient_from,
+        gradient_to,
+      ]
+    );
+    const [rows] = await pool.query(
+      `SELECT id, headline_en, headline_bn, subtext_en, subtext_bn,
+              cta_label_en, cta_label_bn, cta_url, image_1_url, image_2_url,
+              gradient_from, gradient_to, updated_at
+       FROM home_hero WHERE id = 1 LIMIT 1`
+    );
+    res.json({ hero: serializeHomeHeroRow(rows[0]) });
+  } catch (e) {
+    if (e.code === "ER_NO_SUCH_TABLE") {
+      return res.status(503).json({
+        error: "home_hero_table_missing",
+        message: "Run db/migration_home_hero.sql (or full phpmyadmin-setup.sql).",
+      });
+    }
     res.status(500).json({ error: "database_error", message: e.message });
   }
 });

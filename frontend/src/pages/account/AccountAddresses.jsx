@@ -16,6 +16,9 @@ const emptyForm = {
   is_default: true,
 };
 
+const inputClass =
+  "mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20";
+
 export default function AccountAddresses() {
   const { t } = useTranslation();
   const [list, setList] = useState([]);
@@ -136,7 +139,7 @@ export default function AccountAddresses() {
           {t("account.address.label")}
         </label>
         <input
-          className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 text-sm text-white"
+          className={inputClass}
           value={form.label}
           onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
         />
@@ -146,7 +149,7 @@ export default function AccountAddresses() {
           {t("account.address.recipient")}
         </label>
         <input
-          className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 text-sm text-white"
+          className={inputClass}
           value={form.recipient_name}
           onChange={(e) => setForm((f) => ({ ...f, recipient_name: e.target.value }))}
           required
@@ -157,7 +160,7 @@ export default function AccountAddresses() {
           {t("account.address.phone")}
         </label>
         <input
-          className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 text-sm text-white"
+          className={inputClass}
           value={form.phone}
           onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
           inputMode="tel"
@@ -168,7 +171,7 @@ export default function AccountAddresses() {
           {t("account.address.city")}
         </label>
         <input
-          className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 text-sm text-white"
+          className={inputClass}
           value={form.city}
           onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
           required
@@ -179,7 +182,7 @@ export default function AccountAddresses() {
           {t("account.address.line1")}
         </label>
         <input
-          className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 text-sm text-white"
+          className={inputClass}
           value={form.line1}
           onChange={(e) => setForm((f) => ({ ...f, line1: e.target.value }))}
           required
@@ -190,7 +193,7 @@ export default function AccountAddresses() {
           {t("account.address.line2")}
         </label>
         <input
-          className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 text-sm text-white"
+          className={inputClass}
           value={form.line2}
           onChange={(e) => setForm((f) => ({ ...f, line2: e.target.value }))}
         />
@@ -200,7 +203,7 @@ export default function AccountAddresses() {
           {t("account.address.area")}
         </label>
         <input
-          className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 text-sm text-white"
+          className={inputClass}
           value={form.area}
           onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))}
         />
@@ -210,7 +213,7 @@ export default function AccountAddresses() {
           {t("account.address.postal")}
         </label>
         <input
-          className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 text-sm text-white"
+          className={inputClass}
           value={form.postal_code}
           onChange={(e) => setForm((f) => ({ ...f, postal_code: e.target.value }))}
         />
@@ -220,7 +223,7 @@ export default function AccountAddresses() {
           {t("account.address.country")}
         </label>
         <input
-          className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 text-sm text-white"
+          className={inputClass}
           value={form.country}
           onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
         />
@@ -230,40 +233,48 @@ export default function AccountAddresses() {
           type="checkbox"
           checked={form.is_default}
           onChange={(e) => setForm((f) => ({ ...f, is_default: e.target.checked }))}
-          className="h-4 w-4 rounded border-white/20 bg-ink-900/80 text-brand-500"
+          className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500/30"
         />
-        <span className="text-sm text-slate-400">{t("account.address.defaultHint")}</span>
+        <span className="text-sm text-slate-600">{t("account.address.defaultHint")}</span>
       </label>
     </div>
   );
 
   return (
     <div>
-      <header className="border-b border-white/5 pb-6">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">
+      <motion.header
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 400, damping: 32 }}
+        className="border-b border-slate-200 pb-6"
+      >
+        <p className="font-display text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-600">{t("account.zoneLabel")}</p>
+        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           {t("account.address.pageTitle")}
         </h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-400 sm:text-base">{t("account.address.pageIntro")}</p>
-      </header>
+        <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">{t("account.address.pageIntro")}</p>
+      </motion.header>
 
       {error && (
-        <p className="mt-6 text-sm text-amber-200">
+        <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {t("admin.crud.saveError")}: {t(`auth.errors.${error}`, { defaultValue: error })}
         </p>
       )}
 
       <div className="mt-8 flex flex-wrap gap-3">
-        <button
+        <motion.button
           type="button"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => {
             setShowAdd(true);
             setEditingId(null);
             setForm({ ...emptyForm, is_default: list.length === 0 });
           }}
-          className="rounded-full bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/20 hover:bg-brand-400"
+          className="rounded-full bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:bg-brand-400 hover:shadow-brand-500/35"
         >
           {t("account.address.addNew")}
-        </button>
+        </motion.button>
       </div>
 
       <AnimatePresence>
@@ -274,9 +285,9 @@ export default function AccountAddresses() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0 }}
             onSubmit={submitCreate}
-            className="mt-6 overflow-hidden rounded-3xl border border-white/10 bg-ink-900/60 p-6 sm:p-8"
+            className="mt-6 overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 shadow-lg shadow-slate-200/50 sm:p-8"
           >
-            <h2 className="font-display text-lg font-semibold text-white">{t("account.address.formNew")}</h2>
+            <h2 className="font-display text-lg font-semibold text-slate-900">{t("account.address.formNew")}</h2>
             <div className="mt-6">{formFields}</div>
             <div className="mt-6 flex flex-wrap gap-3">
               <button
@@ -292,7 +303,7 @@ export default function AccountAddresses() {
                   setShowAdd(false);
                   setForm(emptyForm);
                 }}
-                className="rounded-full border border-white/15 px-6 py-2.5 text-sm text-slate-300 hover:bg-white/5"
+                className="rounded-full border border-slate-200 bg-white px-6 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
               >
                 {t("admin.crud.cancel")}
               </button>
@@ -301,18 +312,25 @@ export default function AccountAddresses() {
         )}
       </AnimatePresence>
 
-      {loading && <p className="mt-8 text-slate-500">{t("shop.loading")}</p>}
+      {loading && (
+        <p className="mt-8 animate-pulse text-slate-500">{t("shop.loading")}</p>
+      )}
 
       {!loading && (
         <ul className="mt-8 space-y-4">
-          {list.map((row) => (
-            <li key={row.id}>
+          {list.map((row, idx) => (
+            <motion.li
+              key={row.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05, type: "spring", stiffness: 400, damping: 30 }}
+            >
               {editingId === row.id ? (
                 <form
                   onSubmit={submitUpdate}
-                  className="rounded-3xl border border-brand-500/30 bg-ink-900/80 p-6 sm:p-8"
+                  className="rounded-3xl border border-brand-200 bg-white p-6 shadow-lg shadow-slate-200/60 ring-1 ring-brand-100/80 sm:p-8"
                 >
-                  <h3 className="font-display text-lg font-semibold text-white">{t("account.address.formEdit")}</h3>
+                  <h3 className="font-display text-lg font-semibold text-slate-900">{t("account.address.formEdit")}</h3>
                   <div className="mt-6">{formFields}</div>
                   <div className="mt-6 flex flex-wrap gap-3">
                     <button
@@ -325,30 +343,34 @@ export default function AccountAddresses() {
                     <button
                       type="button"
                       onClick={cancelEdit}
-                      className="rounded-full border border-white/15 px-6 py-2.5 text-sm text-slate-300 hover:bg-white/5"
+                      className="rounded-full border border-slate-200 bg-white px-6 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
                     >
                       {t("admin.crud.cancel")}
                     </button>
                   </div>
                 </form>
               ) : (
-                <div className="rounded-2xl border border-white/10 bg-ink-900/50 p-5 sm:p-6">
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 28 }}
+                  className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-md shadow-slate-200/40 sm:p-6"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-display text-lg font-semibold text-white">{row.label}</span>
+                        <span className="font-display text-lg font-semibold text-slate-900">{row.label}</span>
                         {!!Number(row.is_default) && (
-                          <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-300 ring-1 ring-emerald-500/30">
+                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-800 ring-1 ring-emerald-200">
                             {t("account.address.badgeDefault")}
                           </span>
                         )}
                       </div>
-                      <p className="mt-2 text-sm font-medium text-slate-200">{row.recipient_name}</p>
-                      <p className="mt-1 text-sm text-slate-400">
+                      <p className="mt-2 text-sm font-medium text-slate-800">{row.recipient_name}</p>
+                      <p className="mt-1 text-sm text-slate-600">
                         {row.line1}
                         {row.line2 ? `, ${row.line2}` : ""}
                       </p>
-                      <p className="text-sm text-slate-400">
+                      <p className="text-sm text-slate-600">
                         {row.area ? `${row.area}, ` : ""}
                         {row.city}
                         {row.postal_code ? ` · ${row.postal_code}` : ""}
@@ -363,7 +385,7 @@ export default function AccountAddresses() {
                         <button
                           type="button"
                           onClick={() => setDefault(row.id)}
-                          className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-white/5"
+                          className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
                         >
                           {t("account.address.setDefault")}
                         </button>
@@ -371,30 +393,41 @@ export default function AccountAddresses() {
                       <button
                         type="button"
                         onClick={() => startEdit(row)}
-                        className="rounded-full border border-brand-500/30 px-3 py-1.5 text-xs font-medium text-brand-300 hover:bg-brand-500/10"
+                        className="rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-800 transition hover:bg-brand-100"
                       >
                         {t("admin.crud.edit")}
                       </button>
                       <button
                         type="button"
                         onClick={() => remove(row.id)}
-                        className="rounded-full border border-red-500/20 px-3 py-1.5 text-xs font-medium text-red-300/90 hover:bg-red-500/10"
+                        className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100"
                       >
                         {t("admin.crud.delete")}
                       </button>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
-            </li>
+            </motion.li>
           ))}
         </ul>
       )}
 
       {!loading && list.length === 0 && !showAdd && !error && (
-        <p className="mt-8 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-6 py-10 text-center text-sm text-slate-500">
-          {t("account.address.empty")}
-        </p>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 380, damping: 28 }}
+          className="mt-8 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center"
+        >
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 ring-1 ring-brand-100">
+            <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+              <path d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11Z" strokeLinejoin="round" />
+              <circle cx="12" cy="10" r="2.5" />
+            </svg>
+          </div>
+          <p className="text-sm text-slate-600">{t("account.address.empty")}</p>
+        </motion.div>
       )}
     </div>
   );

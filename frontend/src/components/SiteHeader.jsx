@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { apiFetch } from "../api/apiBase.js";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { useCart } from "../cart/CartContext.jsx";
+import { userInitials } from "../utils/userDisplay.js";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
 
 function IconSearch({ className }) {
@@ -49,25 +51,71 @@ function ChevronDown({ className }) {
   );
 }
 
+function IconDash({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+      <path d="M4 13h7V4H4v9Zm9 7h7V11h-7v9ZM4 20h7v-5H4v5Zm9-9h7V4h-7v7Z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconOrdersMenu({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+      <path d="M6 6h15l-1.5 9h-12L4.5 4H2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="9" cy="20" r="1" />
+      <circle cx="18" cy="20" r="1" />
+    </svg>
+  );
+}
+
+function IconPinMenu({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+      <path d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11Z" strokeLinejoin="round" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
+  );
+}
+
+function IconCogMenu({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function SiteHeader() {
   const { t, i18n } = useTranslation();
-  const { pathname, hash } = useLocation();
+  const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, token, ready, logout } = useAuth();
+  const { totalQty } = useCart();
   const loggedIn = Boolean(ready && token && user);
 
   function handleLogout() {
+    setUserMenuOpen(false);
     logout();
     navigate("/", { replace: true });
   }
+
+  const userDisplayName = user?.name?.trim() || user?.email || "";
+  const userMenuInitials = user ? userInitials(user.name, user.email) : "";
+  const userFirstShort = userDisplayName.split(/\s+/)[0] || userDisplayName || "—";
   const searchRef = useRef(null);
   const [query, setQuery] = useState("");
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSheetCatOpen, setMobileSheetCatOpen] = useState(false);
+  const [mobileSheetBrandOpen, setMobileSheetBrandOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
   const headerRef = useRef(null);
   const lastScrollY = useRef(0);
   const [headerHeight, setHeaderHeight] = useState(152);
@@ -81,7 +129,7 @@ export default function SiteHeader() {
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [mobileOpen, i18n.language]);
+  }, [mobileOpen, i18n.language, mobileSheetCatOpen, mobileSheetBrandOpen]);
 
   useEffect(() => {
     lastScrollY.current = window.scrollY;
@@ -98,7 +146,7 @@ export default function SiteHeader() {
       rafId = requestAnimationFrame(() => {
         rafId = 0;
         const y = latestY.current;
-        if (mobileOpen || catOpen || brandOpen) {
+        if (mobileOpen || catOpen || brandOpen || userMenuOpen) {
           setHeaderVisible(true);
           lastScrollY.current = y;
           return;
@@ -119,7 +167,20 @@ export default function SiteHeader() {
       window.removeEventListener("scroll", onScroll);
       if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [mobileOpen, catOpen, brandOpen]);
+  }, [mobileOpen, catOpen, brandOpen, userMenuOpen]);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onPointerDown = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setUserMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+    };
+  }, [userMenuOpen]);
 
   useEffect(() => {
     apiFetch("/api/categories")
@@ -150,7 +211,15 @@ export default function SiteHeader() {
     setMobileOpen(false);
     setCatOpen(false);
     setBrandOpen(false);
+    setUserMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) {
+      setMobileSheetCatOpen(false);
+      setMobileSheetBrandOpen(false);
+    }
+  }, [mobileOpen]);
 
   function onSearchSubmit(e) {
     e.preventDefault();
@@ -169,8 +238,22 @@ export default function SiteHeader() {
     }
   }, [isShop, searchParams]);
 
+  /** Horizontal padding: never narrower than 1rem; expands for notches / home indicator */
+  const headerPadX =
+    "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:pl-[max(1.25rem,env(safe-area-inset-left))] sm:pr-[max(1.25rem,env(safe-area-inset-right))]";
+
+  const mobileSheetLink = (active) =>
+    `block rounded-lg px-3 py-2.5 text-sm transition ${
+      active ? "bg-white/5 font-medium text-brand-300" : "text-slate-300 hover:bg-white/5 hover:text-white"
+    }`;
+
+  const mobileSheetSubLink = (active) =>
+    `block rounded-r-lg py-2 pl-4 pr-3 text-sm transition sm:pl-5 ${
+      active ? "border-l-2 border-brand-400 bg-white/5 font-medium text-brand-300" : "border-l-2 border-transparent text-slate-400 hover:bg-white/5 hover:text-white"
+    }`;
+
   const bottomLinkClassDark = (active) =>
-    `whitespace-nowrap py-2.5 text-sm font-medium transition md:py-3 ${
+    `shrink-0 whitespace-nowrap py-2.5 text-xs font-medium transition sm:text-sm md:py-3 ${
       active ? "text-brand-300" : "text-slate-400 hover:text-white"
     }`;
 
@@ -188,19 +271,19 @@ export default function SiteHeader() {
       />
       <motion.header
         ref={headerRef}
-        className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-ink-950/95 shadow-lg shadow-black/10 backdrop-blur-xl"
+        className="fixed left-0 right-0 top-0 z-50 box-border w-full max-w-[100vw] min-w-0 overflow-x-clip border-b border-white/10 bg-ink-950/95 shadow-lg shadow-black/10 backdrop-blur-xl"
         initial={false}
         animate={{ y: headerVisible ? 0 : "-100%" }}
         transition={headerMotion}
       >
-      {/* Top tier — logo | search | actions */}
-      <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 sm:py-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-8">
-          <div className="flex items-center justify-between gap-4 lg:contents">
-            <div className="shrink-0 lg:order-1">
+      {/* Top tier — mobile: logo | search | cart | menu; md+: logo | search | lang · cart · auth */}
+      <div className={`w-full min-w-0 py-3 sm:py-4 ${headerPadX}`}>
+        <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:gap-4 lg:gap-8">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3 md:contents">
+            <div className="min-w-0 shrink md:order-1">
               <Link
                 to="/"
-                className="block font-display text-xl font-semibold tracking-tight text-white"
+                className="block truncate font-display text-lg font-semibold tracking-tight text-white min-[400px]:text-xl"
               >
                 Cart<span className="text-brand-400">Nexus</span>
               </Link>
@@ -209,20 +292,57 @@ export default function SiteHeader() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 lg:order-3 lg:ml-auto">
-              <div className="lg:hidden">
-                <LanguageSwitcher />
+            <form
+              onSubmit={onSearchSubmit}
+              className="min-w-0 flex-1 md:order-2 md:max-w-2xl md:flex-1"
+            >
+              <div className="relative">
+                <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 md:left-4 md:h-5 md:w-5" />
+                <input
+                  ref={searchRef}
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={t("nav.searchPlaceholder")}
+                  className="h-10 w-full min-w-0 rounded-full border border-white/10 bg-ink-900/80 py-2 pl-10 pr-2 text-xs text-white placeholder:text-slate-500 outline-none ring-brand-500/0 transition focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/20 md:h-12 md:pl-12 md:pr-3 md:text-sm sm:pr-20"
+                  autoComplete="off"
+                />
+                <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded-md border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[10px] text-slate-500 sm:flex">
+                  {typeof navigator !== "undefined" && navigator.platform?.includes("Mac")
+                    ? "⌘"
+                    : "Ctrl+"}
+                  K
+                </kbd>
               </div>
+            </form>
+
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 md:hidden">
               <Link
                 to="/cart"
-                className="rounded-full p-2 text-slate-300 transition hover:bg-white/10 hover:text-white lg:hidden"
+                className="relative rounded-full p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
                 aria-label={t("nav.cart")}
               >
                 <IconCart className="h-6 w-6" />
+                {totalQty > 0 ? (
+                  <span className="absolute right-0.5 top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] font-bold text-white">
+                    {totalQty > 99 ? "99+" : totalQty}
+                  </span>
+                ) : null}
               </Link>
+              {loggedIn && String(user.role) !== "admin" ? (
+                <Link
+                  to="/account"
+                  className="rounded-full p-1 text-slate-300 transition hover:bg-white/10"
+                  aria-label={t("nav.myAccount")}
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-teal-600 text-[11px] font-bold text-white shadow-inner">
+                    {userMenuInitials}
+                  </span>
+                </Link>
+              ) : null}
               <button
                 type="button"
-                className="rounded-full p-2 text-slate-300 lg:hidden"
+                className="rounded-full p-2 text-slate-300"
                 onClick={() => setMobileOpen((o) => !o)}
                 aria-expanded={mobileOpen}
                 aria-label="Menu"
@@ -232,38 +352,19 @@ export default function SiteHeader() {
             </div>
           </div>
 
-          <form
-            onSubmit={onSearchSubmit}
-            className="order-3 w-full lg:order-2 lg:max-w-2xl lg:flex-1"
-          >
-            <div className="relative">
-              <IconSearch className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
-              <input
-                ref={searchRef}
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t("nav.searchPlaceholder")}
-                className="h-12 w-full rounded-full border border-white/10 bg-ink-900/80 py-2 pl-12 pr-20 text-sm text-white placeholder:text-slate-500 outline-none ring-brand-500/0 transition focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/20"
-                autoComplete="off"
-              />
-              <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded-md border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[10px] text-slate-500 sm:flex">
-                {typeof navigator !== "undefined" && navigator.platform?.includes("Mac")
-                  ? "⌘"
-                  : "Ctrl+"}
-                K
-              </kbd>
-            </div>
-          </form>
-
-          <div className="order-2 hidden items-center gap-3 lg:order-3 lg:flex lg:gap-4">
+          <div className="hidden min-w-0 max-w-full flex-wrap items-center justify-end gap-2 sm:gap-3 md:order-3 md:ml-auto md:flex md:gap-2 lg:gap-3 xl:gap-4">
             <LanguageSwitcher />
             <Link
               to="/cart"
-              className="rounded-full p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
+              className="relative rounded-full p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
               aria-label={t("nav.cart")}
             >
               <IconCart className="h-6 w-6" />
+              {totalQty > 0 ? (
+                <span className="absolute right-0.5 top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] font-bold text-white">
+                  {totalQty > 99 ? "99+" : totalQty}
+                </span>
+              ) : null}
             </Link>
             {loggedIn ? (
               <>
@@ -275,26 +376,96 @@ export default function SiteHeader() {
                     {t("admin.panel")}
                   </Link>
                 ) : (
-                  <Link
-                    to="/account"
-                    className="text-sm font-medium text-slate-300 transition hover:text-white"
-                  >
-                    {t("nav.myAccount")}
-                  </Link>
+                  <div className="relative" ref={userMenuRef}>
+                    <button
+                      type="button"
+                      aria-expanded={userMenuOpen}
+                      aria-haspopup="menu"
+                      aria-controls="site-user-menu"
+                      aria-label={t("nav.userMenuAria")}
+                      onClick={() => setUserMenuOpen((o) => !o)}
+                      className="flex max-w-[13rem] items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] py-1 pl-1 pr-2.5 text-left transition hover:bg-white/10 sm:pr-3"
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-teal-600 text-[11px] font-bold text-white shadow-inner">
+                        {userMenuInitials}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">{userFirstShort}</span>
+                      <ChevronDown
+                        className={`h-3 w-3 shrink-0 text-slate-400 transition ${userMenuOpen ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    <AnimatePresence>
+                      {userMenuOpen && (
+                        <motion.div
+                          id="site-user-menu"
+                          role="menu"
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 6 }}
+                          transition={{ duration: 0.18 }}
+                          className="absolute right-0 top-full z-[60] mt-2 min-w-[240px] overflow-hidden rounded-xl border border-slate-200/90 bg-white py-2 text-slate-800 shadow-2xl shadow-black/20"
+                        >
+                          <div className="border-b border-slate-100 px-4 pb-3 pt-1">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              {t("nav.signedInAs")}
+                            </p>
+                            <p className="mt-0.5 truncate text-sm font-semibold text-slate-900" title={userDisplayName}>
+                              {userDisplayName}
+                            </p>
+                          </div>
+                          <div className="py-1">
+                            <Link
+                              role="menuitem"
+                              to="/account"
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50"
+                              onClick={() => setUserMenuOpen(false)}
+                            >
+                              <IconDash className="h-4 w-4 shrink-0 text-slate-500" />
+                              {t("nav.userMenuDashboard")}
+                            </Link>
+                            <Link
+                              role="menuitem"
+                              to="/account/orders"
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50"
+                              onClick={() => setUserMenuOpen(false)}
+                            >
+                              <IconOrdersMenu className="h-4 w-4 shrink-0 text-slate-500" />
+                              {t("nav.userMenuOrders")}
+                            </Link>
+                            <Link
+                              role="menuitem"
+                              to="/account/addresses"
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50"
+                              onClick={() => setUserMenuOpen(false)}
+                            >
+                              <IconPinMenu className="h-4 w-4 shrink-0 text-slate-500" />
+                              {t("nav.userMenuAddresses")}
+                            </Link>
+                            <Link
+                              role="menuitem"
+                              to="/account/profile"
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50"
+                              onClick={() => setUserMenuOpen(false)}
+                            >
+                              <IconCogMenu className="h-4 w-4 shrink-0 text-slate-500" />
+                              {t("nav.userMenuSettings")}
+                            </Link>
+                          </div>
+                          <div className="border-t border-slate-100 pt-1">
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50"
+                              onClick={handleLogout}
+                            >
+                              {t("auth.logout")}
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 )}
-                <span
-                  className="max-w-[10rem] truncate text-sm text-slate-300"
-                  title={user.email || ""}
-                >
-                  {user.name?.trim() || user.email}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="text-sm font-medium text-slate-300 transition hover:text-white"
-                >
-                  {t("auth.logout")}
-                </button>
               </>
             ) : (
               <>
@@ -306,7 +477,7 @@ export default function SiteHeader() {
                 </Link>
                 <Link
                   to="/register"
-                  className="rounded-full bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-500/25 transition hover:bg-brand-400"
+                  className="rounded-full bg-brand-500 px-3 py-2 text-sm font-semibold text-white shadow-md shadow-brand-500/25 transition hover:bg-brand-400 sm:px-5 sm:py-2.5"
                 >
                   {t("nav.register")}
                 </Link>
@@ -314,50 +485,14 @@ export default function SiteHeader() {
             )}
           </div>
         </div>
-
-        {/* Mobile: auth row */}
-        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-white/5 pt-3 lg:hidden">
-          {loggedIn ? (
-            <>
-              {String(user.role) === "admin" ? (
-                <Link to="/admin" className="text-sm font-semibold text-brand-400">
-                  {t("admin.panel")}
-                </Link>
-              ) : (
-                <Link to="/account" className="text-sm font-medium text-slate-300 hover:text-white">
-                  {t("nav.myAccount")}
-                </Link>
-              )}
-              <span className="max-w-[40vw] truncate text-xs text-slate-400" title={user.email || ""}>
-                {user.name?.trim() || user.email}
-              </span>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="text-sm font-medium text-slate-400 hover:text-white"
-              >
-                {t("auth.logout")}
-              </button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" className="text-sm font-medium text-slate-400 hover:text-white">
-                {t("nav.login")}
-              </Link>
-              <Link
-                to="/register"
-                className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-400"
-              >
-                {t("nav.register")}
-              </Link>
-            </>
-          )}
-        </div>
       </div>
 
-      {/* Bottom tier — nav strip (Direct Malaysia style, CartNexus colors) */}
-      <div className="border-t border-white/5 bg-gradient-to-b from-brand-900/20 to-ink-900/95">
-        <nav className="mx-auto hidden max-w-7xl items-center gap-1 px-4 md:flex md:gap-2 md:px-6 lg:gap-4">
+      {/* Bottom tier — nav strip (tablet+ only; mobile uses hamburger menu) */}
+      <div className="hidden min-w-0 max-w-full border-t border-white/5 bg-gradient-to-b from-brand-900/20 to-ink-900/95 md:block">
+        {/* md+: full strip + dropdowns; phones use scroll row below */}
+        <nav
+          className={`hidden w-full min-w-0 flex-wrap items-center justify-start gap-x-1 gap-y-1.5 md:flex md:gap-x-2 md:gap-y-2 lg:gap-x-3 xl:gap-x-4 ${headerPadX}`}
+        >
           <Link
             to="/"
             className={bottomLinkClassDark(pathname === "/")}
@@ -391,7 +526,7 @@ export default function SiteHeader() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 6 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute left-0 top-full z-50 min-w-[200px] rounded-xl border border-white/10 bg-ink-900 py-2 shadow-xl"
+                  className="absolute left-0 top-full z-50 max-w-[min(calc(100vw-2rem),20rem)] min-w-[200px] rounded-xl border border-white/10 bg-ink-900 py-2 shadow-xl"
                 >
                   <Link
                     to="/categories"
@@ -407,16 +542,23 @@ export default function SiteHeader() {
                   >
                     {t("nav.allProducts")}
                   </Link>
-                  {categories.map((c) => (
-                    <Link
-                      key={c.id}
-                      to={`/shop?category=${encodeURIComponent(c.slug)}`}
-                      className="block px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
-                      onClick={() => setCatOpen(false)}
-                    >
-                      {i18n.language?.startsWith("bn") ? c.name_bn : c.name_en}
-                    </Link>
-                  ))}
+                  {categories.length > 0 ? (
+                    <>
+                      <div className="my-1 border-t border-white/10" role="presentation" />
+                      <div className="border-l border-white/15 pl-1">
+                        {categories.map((c) => (
+                          <Link
+                            key={c.id}
+                            to={`/categories/${encodeURIComponent(c.slug)}`}
+                            className="block py-2 pl-3 pr-4 text-sm text-slate-400 hover:bg-white/5 hover:text-white"
+                            onClick={() => setCatOpen(false)}
+                          >
+                            {i18n.language?.startsWith("bn") ? c.name_bn : c.name_en}
+                          </Link>
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -429,7 +571,7 @@ export default function SiteHeader() {
           >
             <button
               type="button"
-              className={`flex items-center gap-0.5 ${bottomLinkClassDark(pathname === "/brands")}`}
+              className={`flex items-center gap-0.5 ${bottomLinkClassDark(pathname === "/brands" || pathname.startsWith("/brands/"))}`}
               aria-expanded={brandOpen}
             >
               {t("nav.brands")}
@@ -441,7 +583,7 @@ export default function SiteHeader() {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 6 }}
-                  className="absolute left-0 top-full z-50 max-h-[min(70vh,420px)] min-w-[220px] overflow-y-auto rounded-xl border border-white/10 bg-ink-900 py-2 shadow-xl"
+                  className="absolute left-0 top-full z-50 max-h-[min(70vh,420px)] max-w-[min(calc(100vw-2rem),20rem)] min-w-[220px] overflow-y-auto rounded-xl border border-white/10 bg-ink-900 py-2 shadow-xl"
                 >
                   <Link
                     to="/brands"
@@ -453,16 +595,21 @@ export default function SiteHeader() {
                   {brands.length === 0 ? (
                     <span className="block px-4 py-2 text-sm text-slate-500">{t("nav.brandsSoon")}</span>
                   ) : (
-                    brands.map((b) => (
-                      <Link
-                        key={b.id}
-                        to={`/shop?brand=${encodeURIComponent(b.slug)}`}
-                        className="block px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
-                        onClick={() => setBrandOpen(false)}
-                      >
-                        {i18n.language?.startsWith("bn") ? b.name_bn : b.name_en}
-                      </Link>
-                    ))
+                    <>
+                      <div className="my-1 border-t border-white/10" role="presentation" />
+                      <div className="border-l border-white/15 pl-1">
+                        {brands.map((b) => (
+                          <Link
+                            key={b.id}
+                            to={`/brands/${encodeURIComponent(b.slug)}`}
+                            className="block py-2 pl-3 pr-4 text-sm text-slate-400 hover:bg-white/5 hover:text-white"
+                            onClick={() => setBrandOpen(false)}
+                          >
+                            {i18n.language?.startsWith("bn") ? b.name_bn : b.name_en}
+                          </Link>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </motion.div>
               )}
@@ -482,59 +629,9 @@ export default function SiteHeader() {
             {t("nav.contact")}
           </Link>
         </nav>
-
-        {/* Mobile horizontal scroll nav */}
-        <nav className="flex gap-4 overflow-x-auto px-4 py-2.5 md:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <Link to="/" className="shrink-0 text-sm font-medium text-slate-300">
-            {t("nav.home")}
-          </Link>
-          <Link to="/shop" className="shrink-0 text-sm font-medium text-slate-300">
-            {t("nav.products")}
-          </Link>
-          <Link
-            to="/categories"
-            className={`shrink-0 text-sm font-medium ${
-              pathname === "/categories" ? "text-brand-300" : "text-slate-300"
-            }`}
-          >
-            {t("nav.categories")}
-          </Link>
-          <Link
-            to="/brands"
-            className={`shrink-0 text-sm font-medium ${
-              pathname === "/brands" ? "text-brand-300" : "text-slate-300"
-            }`}
-          >
-            {t("nav.brands")}
-          </Link>
-          <Link
-            to="/about"
-            className={`shrink-0 text-sm font-medium ${
-              pathname === "/about" ? "text-brand-300" : "text-slate-300"
-            }`}
-          >
-            {t("nav.about")}
-          </Link>
-          <Link
-            to="/blog"
-            className={`shrink-0 text-sm font-medium ${
-              pathname === "/blog" || pathname.startsWith("/blog/") ? "text-brand-300" : "text-slate-300"
-            }`}
-          >
-            {t("nav.blog")}
-          </Link>
-          <Link
-            to="/contact"
-            className={`shrink-0 text-sm font-medium ${
-              pathname === "/contact" ? "text-brand-300" : "text-slate-300"
-            }`}
-          >
-            {t("nav.contact")}
-          </Link>
-        </nav>
       </div>
 
-      {/* Mobile full menu */}
+      {/* Mobile full menu — primary nav, categories, brands, account (screens below md) */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -543,22 +640,261 @@ export default function SiteHeader() {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden border-t border-white/10 bg-ink-900 md:hidden"
           >
-            <div className="space-y-1 px-4 py-4">
-              {categories.map((c) => (
-                <Link
-                  key={c.id}
-                  to={`/shop?category=${encodeURIComponent(c.slug)}`}
-                  className="block rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-white/5"
-                >
-                  {i18n.language?.startsWith("bn") ? c.name_bn : c.name_en}
+            <div
+              className={`max-h-[min(85dvh,720px)] overflow-y-auto overscroll-y-contain py-4 ${headerPadX}`}
+            >
+              <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                {t("nav.menuSection")}
+              </p>
+              <nav className="space-y-0.5" aria-label={t("nav.menuSection")}>
+                <Link to="/" className={mobileSheetLink(pathname === "/")} onClick={() => setMobileOpen(false)}>
+                  {t("nav.home")}
                 </Link>
-              ))}
-              <Link to="/categories" className="block rounded-lg px-3 py-2 text-sm text-brand-300">
-                {t("nav.browseCategories")}
-              </Link>
-              <Link to="/shop" className="block rounded-lg px-3 py-2 text-sm text-slate-400">
-                {t("nav.allProducts")}
-              </Link>
+                <Link
+                  to="/shop"
+                  className={mobileSheetLink(pathname === "/shop" || pathname.startsWith("/shop/"))}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {t("nav.products")}
+                </Link>
+
+                <div className="rounded-lg border border-white/5 bg-white/[0.02]">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-200 transition hover:bg-white/5"
+                    aria-expanded={mobileSheetCatOpen}
+                    onClick={() => setMobileSheetCatOpen((o) => !o)}
+                  >
+                    <span>{t("nav.categories")}</span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition ${mobileSheetCatOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {mobileSheetCatOpen ? (
+                    <div className="space-y-0.5 border-t border-white/10 px-2 pb-2 pt-1">
+                      <Link
+                        to="/categories"
+                        className={mobileSheetSubLink(pathname === "/categories")}
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        {t("nav.browseCategories")}
+                      </Link>
+                      {categories.map((c) => {
+                        const href = `/categories/${encodeURIComponent(c.slug)}`;
+                        const active = pathname === href || pathname === `/categories/${c.slug}`;
+                        return (
+                          <Link
+                            key={c.id}
+                            to={href}
+                            className={mobileSheetSubLink(active)}
+                            onClick={() => setMobileOpen(false)}
+                          >
+                            {i18n.language?.startsWith("bn") ? c.name_bn : c.name_en}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="rounded-lg border border-white/5 bg-white/[0.02]">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-200 transition hover:bg-white/5"
+                    aria-expanded={mobileSheetBrandOpen}
+                    onClick={() => setMobileSheetBrandOpen((o) => !o)}
+                  >
+                    <span>{t("nav.brands")}</span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition ${mobileSheetBrandOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {mobileSheetBrandOpen ? (
+                    <div className="space-y-0.5 border-t border-white/10 px-2 pb-2 pt-1">
+                      <Link
+                        to="/brands"
+                        className={mobileSheetSubLink(pathname === "/brands")}
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        {t("nav.browseBrands")}
+                      </Link>
+                      {brands.length === 0 ? (
+                        <p className="px-3 py-2 text-xs text-slate-500">{t("nav.brandsSoon")}</p>
+                      ) : (
+                        brands.map((b) => {
+                          const href = `/brands/${encodeURIComponent(b.slug)}`;
+                          const active = pathname === href || pathname === `/brands/${b.slug}`;
+                          return (
+                            <Link
+                              key={b.id}
+                              to={href}
+                              className={mobileSheetSubLink(active)}
+                              onClick={() => setMobileOpen(false)}
+                            >
+                              {i18n.language?.startsWith("bn") ? b.name_bn : b.name_en}
+                            </Link>
+                          );
+                        })
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+
+                <Link
+                  to="/about"
+                  className={mobileSheetLink(pathname === "/about")}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {t("nav.about")}
+                </Link>
+                <Link
+                  to="/blog"
+                  className={mobileSheetLink(pathname === "/blog" || pathname.startsWith("/blog/"))}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {t("nav.blog")}
+                </Link>
+                <Link
+                  to="/contact"
+                  className={mobileSheetLink(pathname === "/contact")}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {t("nav.contact")}
+                </Link>
+              </nav>
+
+              <div className="mt-4 border-t border-white/10 pt-4">
+                <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  {t("lang.label")}
+                </p>
+                <div className="px-1">
+                  <LanguageSwitcher />
+                </div>
+              </div>
+
+              <div className="mt-4 border-t border-white/10 pt-4">
+                <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  {t("nav.accountSection")}
+                </p>
+                {loggedIn ? (
+                  <div className="space-y-1">
+                    {String(user.role) === "admin" ? (
+                      <>
+                        <Link
+                          to="/admin"
+                          className="block rounded-lg px-3 py-2 text-sm font-semibold text-brand-400 hover:bg-white/5"
+                          onClick={() => setMobileOpen(false)}
+                        >
+                          {t("admin.panel")}
+                        </Link>
+                        <p className="truncate px-3 text-xs text-slate-500" title={user.email || ""}>
+                          {user.name?.trim() || user.email}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMobileOpen(false);
+                            handleLogout();
+                          }}
+                          className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-rose-400 transition hover:bg-rose-500/10 hover:text-rose-300"
+                        >
+                          {t("auth.logout")}
+                        </button>
+                      </>
+                    ) : (
+                      <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+                        <div className="border-b border-white/10 px-3 py-2.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            {t("nav.signedInAs")}
+                          </p>
+                          <p className="mt-0.5 truncate text-sm font-semibold text-white" title={userDisplayName}>
+                            {userDisplayName}
+                          </p>
+                        </div>
+                        <nav className="py-1" aria-label={t("nav.userMenuAria")}>
+                          <Link
+                            to="/account"
+                            className={`flex items-center gap-3 px-3 py-2.5 text-sm transition ${
+                              pathname === "/account"
+                                ? "bg-white/5 font-medium text-brand-300"
+                                : "text-slate-300 hover:bg-white/5 hover:text-white"
+                            }`}
+                            onClick={() => setMobileOpen(false)}
+                          >
+                            <IconDash className="h-4 w-4 shrink-0 text-slate-400" />
+                            {t("nav.userMenuDashboard")}
+                          </Link>
+                          <Link
+                            to="/account/orders"
+                            className={`flex items-center gap-3 px-3 py-2.5 text-sm transition ${
+                              pathname === "/account/orders"
+                                ? "bg-white/5 font-medium text-brand-300"
+                                : "text-slate-300 hover:bg-white/5 hover:text-white"
+                            }`}
+                            onClick={() => setMobileOpen(false)}
+                          >
+                            <IconOrdersMenu className="h-4 w-4 shrink-0 text-slate-400" />
+                            {t("nav.userMenuOrders")}
+                          </Link>
+                          <Link
+                            to="/account/addresses"
+                            className={`flex items-center gap-3 px-3 py-2.5 text-sm transition ${
+                              pathname === "/account/addresses"
+                                ? "bg-white/5 font-medium text-brand-300"
+                                : "text-slate-300 hover:bg-white/5 hover:text-white"
+                            }`}
+                            onClick={() => setMobileOpen(false)}
+                          >
+                            <IconPinMenu className="h-4 w-4 shrink-0 text-slate-400" />
+                            {t("nav.userMenuAddresses")}
+                          </Link>
+                          <Link
+                            to="/account/profile"
+                            className={`flex items-center gap-3 px-3 py-2.5 text-sm transition ${
+                              pathname === "/account/profile"
+                                ? "bg-white/5 font-medium text-brand-300"
+                                : "text-slate-300 hover:bg-white/5 hover:text-white"
+                            }`}
+                            onClick={() => setMobileOpen(false)}
+                          >
+                            <IconCogMenu className="h-4 w-4 shrink-0 text-slate-400" />
+                            {t("nav.userMenuSettings")}
+                          </Link>
+                        </nav>
+                        <div className="border-t border-white/10 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMobileOpen(false);
+                              handleLogout();
+                            }}
+                            className="flex w-full items-center px-3 py-2.5 text-left text-sm font-medium text-rose-400 transition hover:bg-rose-500/10 hover:text-rose-300"
+                          >
+                            {t("auth.logout")}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2 px-1">
+                    <Link
+                      to="/login"
+                      className="block w-full rounded-lg border border-white/15 px-3 py-2.5 text-center text-sm font-medium text-white hover:bg-white/5"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      {t("nav.login")}
+                    </Link>
+                    <Link
+                      to="/register"
+                      className="block w-full rounded-full bg-brand-500 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-md shadow-brand-500/20 hover:bg-brand-400"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      {t("nav.register")}
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}

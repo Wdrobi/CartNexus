@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet, useLocation, useMatch } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import SiteHeader from "../../components/SiteHeader.jsx";
@@ -36,33 +36,54 @@ function IconMapPin({ className }) {
   );
 }
 
-function AccountSideLink({ to, end, icon: Icon, title, sub }) {
-  const match = useMatch({ path: to, end: end ?? false });
-  const active = !!match;
+function IconOrders({ className }) {
   return (
-    <Link
-      to={to}
-      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200 ${
-        active
-          ? "bg-brand-500/20 text-white shadow-[inset_0_0_0_1px_rgba(45,212,191,0.35)]"
-          : "text-slate-400 hover:bg-white/[0.06] hover:text-white"
-      }`}
-      aria-current={active ? "page" : undefined}
-    >
-      <span
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${
-          active ? "bg-brand-500/30 text-brand-200" : "bg-white/5 text-slate-500"
-        }`}
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+      <path d="M21 16V8l-9-4-9 4v8l9 4 9-4Z" strokeLinejoin="round" />
+      <path d="M3.3 8L12 12l8.7-4M12 21V12" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function AccountSideLink({ to, end, icon: Icon, title, sub }) {
+  return (
+    <motion.div whileHover={{ x: 3 }} whileTap={{ scale: 0.99 }} transition={{ type: "spring", stiffness: 400, damping: 28 }}>
+      <NavLink
+        to={to}
+        end={end}
+        className={({ isActive }) =>
+          `flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200 ${
+            isActive
+              ? "bg-slate-900 text-white shadow-sm ring-1 ring-slate-900/10"
+              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          }`
+        }
       >
-        <Icon className="h-5 w-5" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold">{title}</span>
-        {sub && (
-          <span className="mt-0.5 block truncate text-[11px] font-normal leading-snug text-slate-500">{sub}</span>
+        {({ isActive }) => (
+          <>
+            <span
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${
+                isActive ? "bg-brand-500 text-white shadow-md shadow-brand-500/25" : "bg-slate-100 text-slate-500"
+              }`}
+            >
+              <Icon className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold">{title}</span>
+              {sub ? (
+                <span
+                  className={`mt-0.5 block truncate text-[11px] font-normal leading-snug ${
+                    isActive ? "text-slate-400" : "text-slate-500"
+                  }`}
+                >
+                  {sub}
+                </span>
+              ) : null}
+            </span>
+          </>
         )}
-      </span>
-    </Link>
+      </NavLink>
+    </motion.div>
   );
 }
 
@@ -74,40 +95,38 @@ export default function AccountLayout() {
   const displayLabel = user?.name?.trim() || user?.email || "";
 
   return (
-    <div className="flex min-h-screen flex-col bg-ink-950 text-slate-100">
+    <div className="flex min-h-dvh min-w-0 flex-col bg-slate-100 text-slate-900">
       <SiteHeader />
-      <div className="relative flex-1 overflow-hidden">
+      <div className="relative min-h-0 flex-1 overflow-x-clip">
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_50%_-30%,rgba(45,212,191,0.14),transparent_55%)]"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.35]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_50%_at_50%_-20%,rgba(45,212,191,0.12),transparent_55%)]"
           aria-hidden
         />
 
-        <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-6 lg:px-8 lg:pb-12 lg:pt-8">
-          <div className="mb-6 lg:mb-8">
+        <div className="relative mx-auto w-full max-w-7xl px-4 pb-16 pt-6 sm:px-5 lg:pb-12 lg:pt-8">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-6 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-5 lg:mb-8"
+          >
             <AccountBreadcrumb />
-            <p className="mt-2 max-w-lg text-xs leading-relaxed text-slate-500">{t("account.navStripHint")}</p>
+            <p className="mt-2 max-w-lg text-xs leading-relaxed text-slate-600">{t("account.navStripHint")}</p>
             <p className="mt-2 font-display text-xs font-semibold uppercase tracking-[0.2em] text-brand-400/90">
               {t("account.zoneLabel")}
             </p>
-          </div>
+          </motion.div>
 
           {/* Mobile: pill navigation */}
-          <div className="mb-6 flex gap-2 overflow-x-auto pb-1 lg:hidden scrollbar-thin">
+          <div className="mb-6 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden">
             <NavLink
               to="/account"
               end
               className={({ isActive }) =>
-                `flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2.5 text-sm font-semibold transition sm:px-4 ${
+                `flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2.5 text-sm font-semibold transition will-change-transform sm:px-4 ${
                   isActive
-                    ? "bg-brand-500 text-white shadow-lg shadow-brand-500/25"
-                    : "border border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/20"
+                    ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30 ring-2 ring-brand-400/20"
+                    : "border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 active:scale-[0.98]"
                 }`
               }
             >
@@ -115,12 +134,25 @@ export default function AccountLayout() {
               <span className="whitespace-nowrap">{t("account.nav.overview")}</span>
             </NavLink>
             <NavLink
+              to="/account/orders"
+              className={({ isActive }) =>
+                `flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2.5 text-sm font-semibold transition will-change-transform sm:px-4 ${
+                  isActive
+                    ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30 ring-2 ring-brand-400/20"
+                    : "border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 active:scale-[0.98]"
+                }`
+              }
+            >
+              <IconOrders className="h-4 w-4 shrink-0 opacity-90" />
+              <span className="whitespace-nowrap">{t("account.nav.orders")}</span>
+            </NavLink>
+            <NavLink
               to="/account/profile"
               className={({ isActive }) =>
-                `flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2.5 text-sm font-semibold transition sm:px-4 ${
+                `flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2.5 text-sm font-semibold transition will-change-transform sm:px-4 ${
                   isActive
-                    ? "bg-brand-500 text-white shadow-lg shadow-brand-500/25"
-                    : "border border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/20"
+                    ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30 ring-2 ring-brand-400/20"
+                    : "border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 active:scale-[0.98]"
                 }`
               }
             >
@@ -130,10 +162,10 @@ export default function AccountLayout() {
             <NavLink
               to="/account/addresses"
               className={({ isActive }) =>
-                `flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2.5 text-sm font-semibold transition sm:px-4 ${
+                `flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2.5 text-sm font-semibold transition will-change-transform sm:px-4 ${
                   isActive
-                    ? "bg-brand-500 text-white shadow-lg shadow-brand-500/25"
-                    : "border border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/20"
+                    ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30 ring-2 ring-brand-400/20"
+                    : "border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 active:scale-[0.98]"
                 }`
               }
             >
@@ -144,12 +176,19 @@ export default function AccountLayout() {
 
           <div className="flex flex-col gap-8 lg:flex-row lg:gap-10 xl:gap-12">
             <aside className="shrink-0 lg:w-72 lg:max-w-[20rem]">
-              <div className="lg:sticky lg:top-24 space-y-4">
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-ink-800/90 via-ink-900/95 to-ink-950 p-5 shadow-xl shadow-black/20">
-                  <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-brand-500/20 blur-3xl" aria-hidden />
+              <div className="space-y-4 lg:sticky lg:top-24">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  whileHover={{ y: -2 }}
+                  className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-md shadow-slate-200/50 transition-shadow duration-300 hover:shadow-lg"
+                >
+                  <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-brand-500/15 blur-3xl" aria-hidden />
+                  <div className="pointer-events-none absolute -bottom-1 left-0 h-px w-full bg-gradient-to-r from-transparent via-brand-500/20 to-transparent" aria-hidden />
                   <div className="relative flex items-start gap-4">
                     <div
-                      className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-ink-950 ring-2 ring-white/10 shadow-lg shadow-brand-900/40"
+                      className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-slate-100 ring-2 ring-slate-200 shadow-md"
                       aria-hidden
                     >
                       {user?.avatar_url ? (
@@ -166,17 +205,17 @@ export default function AccountLayout() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1 pt-0.5">
-                      <p className="truncate font-display text-base font-semibold text-white">{displayLabel}</p>
+                      <p className="truncate font-display text-base font-semibold text-slate-900">{displayLabel}</p>
                       <p className="mt-0.5 truncate font-mono text-xs text-slate-500">{user?.email}</p>
-                      <span className="mt-2 inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-300/95 ring-1 ring-emerald-500/25">
+                      <span className="mt-2 inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-800 ring-1 ring-emerald-200">
                         {t("account.badge.customer")}
                       </span>
                     </div>
                   </div>
-                </div>
+                </motion.div>
 
                 <nav
-                  className="hidden flex-col gap-1 rounded-2xl border border-white/10 bg-ink-900/40 p-2 backdrop-blur-sm lg:flex"
+                  className="hidden flex-col gap-1 rounded-2xl border border-slate-200/90 bg-white p-2 shadow-sm lg:flex"
                   aria-label={t("account.navAria")}
                 >
                   <AccountSideLink
@@ -185,6 +224,13 @@ export default function AccountLayout() {
                     icon={IconHome}
                     title={t("account.nav.overview")}
                     sub={t("account.nav.subOverview")}
+                  />
+                  <AccountSideLink
+                    to="/account/orders"
+                    end
+                    icon={IconOrders}
+                    title={t("account.nav.orders")}
+                    sub={t("account.nav.subOrders")}
                   />
                   <AccountSideLink
                     to="/account/profile"
@@ -202,15 +248,15 @@ export default function AccountLayout() {
                   />
                 </nav>
 
-                <p className="hidden px-1 text-xs leading-relaxed text-slate-600 lg:block">{t("account.sidebarHint")}</p>
+                <p className="hidden px-1 text-xs leading-relaxed text-slate-500 lg:block">{t("account.sidebarHint")}</p>
               </div>
             </aside>
 
             <motion.main
               key={pathname}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ type: "spring", stiffness: 380, damping: 32, mass: 0.6 }}
               className="min-w-0 flex-1"
             >
               <Outlet />

@@ -18,17 +18,17 @@ INSERT INTO users (email, password_hash, role, name) VALUES
   )
   ON DUPLICATE KEY UPDATE email = email;
 
-INSERT INTO categories (name_bn, name_en, slug, sort_order) VALUES
-  ('টি-শার্ট ও পোলো', 'T-Shirts & Polos', 't-shirts-polos', 1),
-  ('শার্ট', 'Shirts', 'shirts', 2),
-  ('প্যান্ট ও জিন্স', 'Pants & Jeans', 'pants-jeans', 3),
-  ('জ্যাকেট ও আউটারওয়্যার', 'Outerwear & Jackets', 'outerwear', 4),
-  ('অ্যাক্টিভওয়্যার', 'Activewear', 'activewear', 5),
-  ('জুতা', 'Footwear', 'footwear', 6),
-  ('আন্ডারওয়্যার ও মোজা', 'Underwear & Socks', 'underwear-socks', 7),
-  ('ঘড়ি ও অ্যাক্সেসারিজ', 'Watches & Accessories', 'watches-accessories', 8),
-  ('ব্যাগ ও ওয়ালেট', 'Bags & Wallets', 'bags-wallets', 9),
-  ('গ্রুমিং ও স্কিনকেয়ার', 'Grooming & Skincare', 'grooming-skincare', 10);
+INSERT INTO categories (name_bn, name_en, slug, sort_order, page_layout) VALUES
+  ('টি-শার্ট ও পোলো', 'T-Shirts & Polos', 't-shirts-polos', 1, 'clothing'),
+  ('শার্ট', 'Shirts', 'shirts', 2, 'clothing'),
+  ('প্যান্ট ও জিন্স', 'Pants & Jeans', 'pants-jeans', 3, 'clothing'),
+  ('জ্যাকেট ও আউটারওয়্যার', 'Outerwear & Jackets', 'outerwear', 4, 'clothing'),
+  ('অ্যাক্টিভওয়্যার', 'Activewear', 'activewear', 5, 'clothing'),
+  ('জুতা', 'Footwear', 'footwear', 6, 'footwear'),
+  ('আন্ডারওয়্যার ও মোজা', 'Underwear & Socks', 'underwear-socks', 7, 'clothing'),
+  ('ঘড়ি ও অ্যাক্সেসারিজ', 'Watches & Accessories', 'watches-accessories', 8, 'accessories'),
+  ('ব্যাগ ও ওয়ালেট', 'Bags & Wallets', 'bags-wallets', 9, 'accessories'),
+  ('গ্রুমিং ও স্কিনকেয়ার', 'Grooming & Skincare', 'grooming-skincare', 10, 'grooming');
 
 INSERT INTO brands (name_bn, name_en, slug, sort_order) VALUES
   ('নেক্সাস লাইন', 'Nexus Line', 'nexus-line', 1),
@@ -149,3 +149,58 @@ INSERT INTO products (
 (10, 'হ্যান্ড ক্রিম', 'Hand Cream', 'grooming-skincare-p10', 'শুষ্ক হাতে।', 'Non-greasy for dry hands.', 1489.00, NULL, 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80', 69, 1);
 
 UPDATE products SET brand_id = MOD(id - 1, 10) + 1;
+
+-- Demo structured descriptions + color/volume variants (requires schema with JSON + product_color_variants)
+UPDATE products SET
+  description_sections_en = CAST('[{"title":"Overview","body":"A soft, breathable crew neck tee built from combed cotton jersey. Clean seams and a stable collar make it easy to wear alone or under shirts. Part of our everyday essentials line."},{"title":"Materials & care","body":"• 100% combed cotton\\n• Machine wash cold with like colors\\n• Tumble dry low; cool iron if needed\\n• Do not bleach"},{"title":"Fit & sizing","body":"Regular fit through chest and shoulders. If you prefer a looser silhouette, consider sizing up. Model details and measurements are indicative only."}]' AS JSON),
+  description_sections_bn = CAST('[{"title":"সংক্ষিপ্ত বিবরণ","body":"কম্বড কটন জার্সি দিয়ে তৈরি নরম ক্রু নেক টি। পরিষ্কার সেলাই ও মজবুত কলার — একা বা শার্টের নিচে পরার জন্য উপযুক্ত।"},{"title":"উপাদান ও যত্ন","body":"• ১০০% কম্বড কটন\\n• একই রঙের কাপড়ের সঙ্গে ঠান্ডা পানিতে ধোয়া\\n• লো তাপে শুকান; প্রয়োজনে হালকা ইস্ত্রি\\n• ব্লিচ ব্যবহার করবেন না"},{"title":"ফিট ও সাইজ","body":"বুক ও কাঁধে রেগুলার ফিট। আরামদায়ক লুজ লাগলে এক সাইজ বড় নিতে পারেন।"}]' AS JSON)
+WHERE slug = 't-shirts-polos-p1';
+
+UPDATE products SET
+  description_sections_en = CAST('[{"title":"Overview","body":"Classic low-profile sneakers with a smooth leather upper and cushioned midsole. Versatile white pairs with denim, chinos, or joggers."},{"title":"Construction","body":"• Leather and synthetic upper\\n• Padded collar and breathable lining\\n• Rubber outsole for daily traction"},{"title":"Care","body":"Wipe with a damp cloth. Air dry away from direct heat. Use a leather conditioner occasionally to keep the upper supple."}]' AS JSON),
+  description_sections_bn = CAST('[{"title":"সংক্ষিপ্ত বিবরণ","body":"মসৃণ লেদার আপার ও কুশন মিডসোল সহ ক্লাসিক স্নিকার। সাদা রঙ ডেনিম, চিনো বা জগারের সঙ্গে মানায়।"},{"title":"তৈরি","body":"• লেদার ও সিনথেটিক আপার\\n• প্যাডেড কলার ও ব্রিদেবল লাইনিং\\n• রাবার আউটসোল"},{"title":"যত্ন","body":"ভেজা কাপড়ে মুছে নিন। সরাসরি তাপ থেকে দূরে শুকান। মাঝে মাঝে লেদার কন্ডিশনার ব্যবহার করুন।"}]' AS JSON)
+WHERE slug = 'footwear-p1';
+
+UPDATE products SET
+  description_sections_en = CAST('[{"title":"Overview","body":"Minimal quartz movement in a slim stainless case. Genuine leather strap with signed buckle — suitable for office and weekend wear."},{"title":"Specifications","body":"• Case: stainless steel\\n• Movement: quartz\\n• Strap: genuine leather\\n• Water resistance: splash resistant (not for swimming)"},{"title":"Warranty","body":"Manufacturer warranty covers movement defects. Keep your proof of purchase."}]' AS JSON),
+  description_sections_bn = CAST('[{"title":"সংক্ষিপ্ত বিবরণ","body":"পাতলা স্টেইনলেস কেসে মিনিমাল কোয়ার্টজ মুভমেন্ট। আসল লেদার স্ট্র্যাপ — অফিস ও উইকএন্ডের জন্য উপযুক্ত।"},{"title":"স্পেসিফিকেশন","body":"• কেস: স্টেইনলেস স্টিল\\n• মুভমেন্ট: কোয়ার্টজ\\n• স্ট্র্যাপ: জেনুইন লেদার\\n• পানি প্রতিরোধ: স্প্ল্যাশ (সাঁতার নয়)"},{"title":"ওয়ারেন্টি","body":"মুভমেন্ট ত্রুটির জন্য প্রস্তুতকারক ওয়ারেন্টি। কেনার রসিদ সংরক্ষণ করুন।"}]' AS JSON)
+WHERE slug = 'watches-accessories-p1';
+
+UPDATE products SET
+  description_sections_en = CAST('[{"title":"Overview","body":"Structured leather backpack with padded laptop sleeve (fits most 15 inch laptops), organizer pockets, and adjustable shoulder straps. Designed for commute and short trips."},{"title":"Details","body":"• Full-grain leather accents\\n• Padded back panel\\n• YKK-style zippers\\n• Exterior quick-access pocket"},{"title":"Care","body":"Condition leather periodically. Store stuffed to keep shape when not in use."}]' AS JSON),
+  description_sections_bn = CAST('[{"title":"সংক্ষিপ্ত বিবরণ","body":"প্যাডেড ল্যাপটপ স্লিভ, অর্গানাইজার পকেট ও অ্যাডজাস্টেবল স্ট্র্যাপ সহ স্ট্রাকচার্ড লেদার ব্যাকপ্যাক। কমিউট ও ছোট ট্রিপের জন্য।"},{"title":"বিস্তারিত","body":"• ফুল-গ্রেইন লেদার অ্যাকসেন্ট\\n• প্যাডেড ব্যাক প্যানেল\\n• দ্রুত অ্যাক্সেস পকেট"},{"title":"যত্ন","body":"সময়ে সময়ে লেদার কন্ডিশন করুন। ব্যবহার না করলে আকার ধরে রাখতে স্টাফ করে রাখুন।"}]' AS JSON)
+WHERE slug = 'bags-wallets-p1';
+
+UPDATE products SET
+  description_sections_en = CAST('[{"title":"Overview","body":"Gentle daily cleanser that removes dirt and excess oil without stripping moisture. pH-balanced formula suitable for normal to combination skin."},{"title":"How to use","body":"Apply to damp face, massage in circular motions, then rinse thoroughly. Follow with moisturizer and SPF in the morning."},{"title":"Ingredients","body":"Key ingredients include mild surfactants, glycerin, and soothing botanicals. See packaging for full INCI list."}]' AS JSON),
+  description_sections_bn = CAST('[{"title":"সংক্ষিপ্ত বিবরণ","body":"নরম দৈনিক ক্লিনজার — ময়েশ্চার ছাড়াই ময়লা ও অতিরিক্ত তেল দূর করে। সাধারণ থেকে কম্বিনেশন স্কিনের জন্য pH ব্যালান্স।"},{"title":"ব্যবহার","body":"ভেজা মুখে লাগিয়ে গোলাকার ভাবে ম্যাসাজ করুন, ভালো করে ধুয়ে ফেলুন। সকালে ময়েশ্চারাইজার ও SPF ব্যবহার করুন।"},{"title":"উপাদান","body":"হালকা সারফ্যাকট্যান্ট, গ্লিসারিন ও সুদিং বটানিক্যালস। সম্পূর্ণ তালিকা প্যাকেজিংয়ে।"}]' AS JSON)
+WHERE slug = 'grooming-skincare-p1';
+
+INSERT INTO product_color_variants (product_id, sort_order, name_en, name_bn, image_url, stock)
+SELECT id, 0, 'White', 'সাদা', 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80', 5 FROM products WHERE slug = 't-shirts-polos-p1' LIMIT 1;
+INSERT INTO product_color_variants (product_id, sort_order, name_en, name_bn, image_url, stock)
+SELECT id, 1, 'Black', 'কালো', 'https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?auto=format&fit=crop&w=800&q=80', 6 FROM products WHERE slug = 't-shirts-polos-p1' LIMIT 1;
+INSERT INTO product_color_variants (product_id, sort_order, name_en, name_bn, image_url, stock)
+SELECT id, 2, 'Navy', 'নেভি', 'https://images.unsplash.com/photo-1622445275751-13fa261cba76?auto=format&fit=crop&w=800&q=80', 4 FROM products WHERE slug = 't-shirts-polos-p1' LIMIT 1;
+
+INSERT INTO product_color_variants (product_id, sort_order, name_en, name_bn, image_url, stock)
+SELECT id, 0, 'White', 'সাদা', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80', 7 FROM products WHERE slug = 'footwear-p1' LIMIT 1;
+INSERT INTO product_color_variants (product_id, sort_order, name_en, name_bn, image_url, stock)
+SELECT id, 1, 'Black', 'কালো', 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?auto=format&fit=crop&w=800&q=80', 6 FROM products WHERE slug = 'footwear-p1' LIMIT 1;
+INSERT INTO product_color_variants (product_id, sort_order, name_en, name_bn, image_url, stock)
+SELECT id, 2, 'Navy', 'নেভি', 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=800&q=80', 7 FROM products WHERE slug = 'footwear-p1' LIMIT 1;
+
+INSERT INTO product_color_variants (product_id, sort_order, name_en, name_bn, image_url, stock)
+SELECT id, 0, 'Silver', 'সিলভার', 'https://images.unsplash.com/photo-1620799140408-ed534d426b47?auto=format&fit=crop&w=800&q=80', 10 FROM products WHERE slug = 'watches-accessories-p1' LIMIT 1;
+INSERT INTO product_color_variants (product_id, sort_order, name_en, name_bn, image_url, stock)
+SELECT id, 1, 'Black', 'কালো', 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=800&q=80', 12 FROM products WHERE slug = 'watches-accessories-p1' LIMIT 1;
+
+INSERT INTO product_color_variants (product_id, sort_order, name_en, name_bn, image_url, stock)
+SELECT id, 0, 'Charcoal', 'চারকোল', 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80', 12 FROM products WHERE slug = 'bags-wallets-p1' LIMIT 1;
+INSERT INTO product_color_variants (product_id, sort_order, name_en, name_bn, image_url, stock)
+SELECT id, 1, 'Brown', 'ব্রাউন', 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80', 11 FROM products WHERE slug = 'bags-wallets-p1' LIMIT 1;
+
+INSERT INTO product_color_variants (product_id, sort_order, name_en, name_bn, image_url, stock)
+SELECT id, 0, '50 ml', '৫০ মিলি', 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80', 15 FROM products WHERE slug = 'grooming-skincare-p1' LIMIT 1;
+INSERT INTO product_color_variants (product_id, sort_order, name_en, name_bn, image_url, stock)
+SELECT id, 1, '100 ml', '১০০ মিলি', 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80', 9 FROM products WHERE slug = 'grooming-skincare-p1' LIMIT 1;

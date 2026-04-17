@@ -11,7 +11,7 @@ export default function LanguageSwitcher({ className = "" }) {
 
   return (
     <div
-      className={`flex items-center gap-2 ${className}`}
+      className={`flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2 ${className}`}
       role="group"
       aria-label={t("lang.label")}
     >

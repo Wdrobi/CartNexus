@@ -20,7 +20,7 @@ export default function AdminLogin() {
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-ink-950 text-slate-400">
+      <div className="flex min-h-dvh min-w-0 items-center justify-center bg-ink-950 text-slate-400">
         {t("auth.loading")}
       </div>
     );
@@ -69,12 +69,12 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-ink-950">
+    <div className="relative min-h-dvh min-w-0 overflow-x-clip bg-ink-950">
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-15%,rgba(20,184,166,0.18),transparent)]"
         aria-hidden
       />
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-12">
+      <div className="relative z-10 flex min-h-dvh min-w-0 flex-col items-center justify-center px-4 py-12">
         <motion.div
           className="w-full max-w-[400px]"
           initial={{ opacity: 0, y: 12 }}
@@ -94,7 +94,7 @@ export default function AdminLogin() {
               className="h-0.5 w-full bg-gradient-to-r from-brand-600 via-brand-400 to-brand-600"
               aria-hidden
             />
-            <div className="px-8 pb-10 pt-9 sm:px-10">
+            <div className="px-5 pb-10 pt-9 sm:px-10">
               <p className="font-display text-xl font-semibold tracking-tight text-white">
                 Cart<span className="text-brand-400">Nexus</span>
               </p>

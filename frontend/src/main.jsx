@@ -5,6 +5,7 @@ import { HelmetProvider } from "react-helmet-async";
 import "./i18n/config.js";
 import App from "./App.jsx";
 import { AuthProvider } from "./auth/AuthContext.jsx";
+import { CartProvider } from "./cart/CartContext.jsx";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -12,7 +13,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <HelmetProvider>
         <AuthProvider>
-          <App />
+          <CartProvider>
+            <App />
+          </CartProvider>
         </AuthProvider>
       </HelmetProvider>
     </BrowserRouter>

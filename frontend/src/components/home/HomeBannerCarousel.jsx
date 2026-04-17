@@ -70,7 +70,7 @@ export default function HomeBannerCarousel() {
 
   return (
     <section className="bg-brand-50/40 py-10 sm:py-12" aria-roledescription="carousel">
-      <div className="relative mx-auto max-w-7xl px-5 sm:px-6">
+      <div className="relative w-full px-[20px]">
         <div className="relative overflow-hidden rounded-2xl border border-brand-100 bg-white shadow-sm ring-1 ring-brand-100/60">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div

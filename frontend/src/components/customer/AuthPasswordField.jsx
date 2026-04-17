@@ -21,6 +21,12 @@ function EyeOffIcon({ className }) {
   );
 }
 
+const inputClass = {
+  dark: "h-12 w-full rounded-xl border border-white/10 bg-ink-900/80 px-4 py-3 pr-12 text-sm text-white placeholder:text-slate-500 outline-none ring-brand-500/0 transition focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/20",
+  light:
+    "h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm text-slate-900 placeholder:text-slate-400 outline-none ring-brand-500/0 transition focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20",
+};
+
 export default function AuthPasswordField({
   id,
   name,
@@ -30,8 +36,10 @@ export default function AuthPasswordField({
   autoComplete,
   disabled,
   ariaLabel,
+  variant = "dark",
 }) {
   const [show, setShow] = useState(false);
+  const v = variant === "light" ? "light" : "dark";
   return (
     <div className="relative">
       <input
@@ -44,11 +52,15 @@ export default function AuthPasswordField({
         autoComplete={autoComplete}
         disabled={disabled}
         aria-label={ariaLabel}
-        className="h-12 w-full rounded-xl border border-white/10 bg-ink-900/80 px-4 py-3 pr-12 text-sm text-white placeholder:text-slate-500 outline-none ring-brand-500/0 transition focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/20"
+        className={inputClass[v]}
       />
       <button
         type="button"
-        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 transition hover:bg-white/10 hover:text-white"
+        className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 transition ${
+          v === "light"
+            ? "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+            : "text-slate-400 hover:bg-white/10 hover:text-white"
+        }`}
         onClick={() => setShow((s) => !s)}
         aria-label={show ? "Hide password" : "Show password"}
         tabIndex={-1}

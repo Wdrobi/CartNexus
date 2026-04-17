@@ -46,13 +46,13 @@ export default function TermsPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-dvh min-w-0 bg-slate-100 text-slate-900">
       <SiteHeader />
 
       <section className="relative overflow-hidden bg-ink-950 text-white">
         <div className="pointer-events-none absolute inset-0 bg-grid-fade opacity-80" aria-hidden />
         <div className="pointer-events-none absolute inset-0 bg-hero-mesh opacity-90" aria-hidden />
-        <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 md:py-20">
+        <div className="relative mx-auto w-full max-w-none px-[20px] py-14 sm:py-16 md:py-20">
           <motion.p
             className="text-xs font-bold uppercase tracking-[0.25em] text-brand-400"
             initial={{ opacity: 0, y: 10 }}
@@ -90,7 +90,7 @@ export default function TermsPage() {
       </section>
 
       <section className="border-b border-slate-200/80 bg-white py-10 sm:py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto w-full max-w-none px-[20px]">
           <h2 className="text-center font-display text-lg font-bold text-ink-950 md:text-xl">
             {t("termsPage.highlightsTitle")}
           </h2>
@@ -114,7 +114,7 @@ export default function TermsPage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="mx-auto w-full max-w-none px-[20px] py-10 sm:py-14">
         <p className="mx-auto max-w-3xl rounded-2xl border border-amber-200/80 bg-amber-50/90 px-5 py-4 text-sm text-amber-950 md:text-[15px]">
           {t("termsPage.disclaimer")}
         </p>

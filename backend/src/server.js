@@ -1,3 +1,4 @@
+import http from "http";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -14,6 +15,9 @@ import contactRouter from "./routes/contact.js";
 import adminRouter from "./routes/admin/index.js";
 import { requireAdmin } from "./middleware/auth.js";
 import avatarUploadRouter from "./routes/avatarUpload.js";
+import homeRouter from "./routes/home.js";
+import ordersRouter from "./routes/orders.js";
+import { attachAdminWebSocket } from "./realtime/adminWs.js";
 
 dotenv.config();
 
@@ -50,6 +54,7 @@ app.get("/api/health/db", async (_req, res) => {
   }
 });
 
+app.use("/api/home", homeRouter);
 app.use("/api/categories", categoriesRouter);
 app.use("/api/brands", brandsRouter);
 app.use("/api/products", productsRouter);
@@ -57,12 +62,17 @@ app.use("/api/auth", avatarUploadRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/auth", userAddressesRouter);
 app.use("/api/contact", contactRouter);
+app.use("/api/orders", ordersRouter);
 app.use("/api/admin", requireAdmin, adminRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-app.listen(PORT, () => {
+const server = http.createServer(app);
+attachAdminWebSocket(server);
+
+server.listen(PORT, () => {
   console.log(`CartNexus API http://localhost:${PORT}`);
+  console.log(`Admin WebSocket ws://localhost:${PORT}/ws/admin`);
 });

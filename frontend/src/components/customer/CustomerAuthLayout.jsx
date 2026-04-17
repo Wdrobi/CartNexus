@@ -14,7 +14,7 @@ export default function CustomerAuthLayout({ variant, children }) {
     variant === "login" ? t("customerAuth.visualQuoteLogin") : t("customerAuth.visualQuoteRegister");
 
   return (
-    <div className="flex min-h-screen flex-col bg-ink-950 text-slate-100">
+    <div className="flex min-h-dvh min-w-0 flex-col bg-ink-950 text-slate-100">
       <div className="fixed inset-0 bg-grid-fade opacity-90" aria-hidden />
       <div className="fixed inset-0 bg-hero-mesh opacity-100" aria-hidden />
 
@@ -49,7 +49,7 @@ export default function CustomerAuthLayout({ variant, children }) {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="relative mx-auto w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-ink-800/90 to-ink-950/95 p-8 shadow-2xl shadow-black/40 backdrop-blur-xl sm:p-10"
+              className="relative mx-auto w-full max-w-md min-w-0 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-ink-800/90 to-ink-950/95 p-5 shadow-2xl shadow-black/40 backdrop-blur-xl sm:p-10"
             >
               <div
                 className="pointer-events-none absolute left-0 right-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent opacity-80"

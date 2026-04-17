@@ -92,8 +92,8 @@ export default function SiteFooter({ showCta = true }) {
   return (
     <>
       {showCta && (
-        <section className="relative border-t border-white/5 bg-ink-950 px-4 py-14 sm:px-6 sm:py-20">
-          <div className="mx-auto max-w-5xl">
+        <section className="relative w-full border-t border-white/5 bg-ink-950 px-[20px] py-14 sm:py-20">
+          <div className="mx-auto w-full max-w-none">
             <motion.div
               className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-gradient-to-br from-ink-900 via-brand-900/90 to-ink-950 px-6 py-12 text-center shadow-2xl sm:px-12 sm:py-14"
               initial={{ opacity: 0, y: 24 }}
@@ -130,7 +130,7 @@ export default function SiteFooter({ showCta = true }) {
       )}
 
       <footer id="site-footer" className="scroll-mt-24 bg-slate-100 text-slate-800">
-        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 lg:py-16">
+        <div className="w-full px-[20px] py-14 lg:py-16">
           <div className="grid gap-12 lg:grid-cols-12 lg:gap-10">
             <div className="lg:col-span-4">
               <p className="font-display text-2xl font-bold text-ink-950">
@@ -227,7 +227,7 @@ export default function SiteFooter({ showCta = true }) {
         </div>
 
         <div className="border-t border-slate-200/80 bg-slate-200/40">
-          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-5 text-xs text-slate-600 sm:flex-row sm:px-6">
+          <div className="flex w-full flex-col items-center justify-between gap-3 px-[20px] py-5 text-xs text-slate-600 sm:flex-row">
             <span>
               {t("footer.copyright", { year })}
             </span>
@@ -236,7 +236,7 @@ export default function SiteFooter({ showCta = true }) {
         </div>
       </footer>
 
-      <div className="pointer-events-none fixed bottom-6 right-5 z-40 flex flex-col gap-3 sm:right-6">
+      <div className="pointer-events-none fixed z-40 flex flex-col gap-3 [bottom:calc(1.5rem+env(safe-area-inset-bottom,0px))] [right:calc(1rem+env(safe-area-inset-right,0px))] sm:[right:calc(1.5rem+env(safe-area-inset-right,0px))]">
         {showTop && (
           <motion.button
             type="button"

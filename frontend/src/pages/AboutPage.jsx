@@ -93,7 +93,7 @@ function TestimonialsShowcase({ keys }) {
       };
 
   return (
-    <div className="mx-auto mt-10 max-w-5xl">
+    <div className="mx-auto mt-10 w-full max-w-none px-[20px]">
       <p className="text-center text-xs text-slate-500">{t("aboutPage.testimonialHint")}</p>
 
       <div
@@ -325,13 +325,13 @@ export default function AboutPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-dvh min-w-0 bg-slate-100 text-slate-900">
       <SiteHeader />
 
       <section className="relative overflow-hidden bg-ink-950 text-white">
         <div className="pointer-events-none absolute inset-0 bg-grid-fade opacity-80" aria-hidden />
         <div className="pointer-events-none absolute inset-0 bg-hero-mesh opacity-90" aria-hidden />
-        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 md:py-28">
+        <div className="relative mx-auto w-full max-w-none px-[20px] py-16 sm:py-20 md:py-28">
           <motion.p
             className="text-xs font-bold uppercase tracking-[0.25em] text-brand-400"
             initial={{ opacity: 0, y: 12 }}
@@ -341,7 +341,7 @@ export default function AboutPage() {
             {t("aboutPage.heroKicker")}
           </motion.p>
           <motion.h1
-            className="mt-4 max-w-3xl font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-5xl"
+            className="mt-4 max-w-3xl break-words font-display text-2xl font-bold leading-tight tracking-tight sm:text-3xl md:text-4xl lg:text-5xl"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.06 }}
@@ -360,7 +360,7 @@ export default function AboutPage() {
       </section>
 
       <section className="border-b border-slate-200/80 bg-white py-14 sm:py-16 md:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto w-full max-w-none px-[20px]">
           <motion.div
             className="mx-auto max-w-3xl text-center"
             initial={{ opacity: 0, y: 16 }}
@@ -376,7 +376,7 @@ export default function AboutPage() {
       </section>
 
       <section className="border-b border-slate-200/80 bg-slate-50 py-14 sm:py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto w-full max-w-none px-[20px]">
           <h2 className="text-center font-display text-xl font-bold text-ink-950 md:text-2xl">
             {t("aboutPage.statsTitle")}
           </h2>
@@ -389,7 +389,7 @@ export default function AboutPage() {
             ].map((item, idx) => (
               <motion.li
                 key={item.labelKey}
-                className="rounded-2xl border border-slate-200/90 bg-white p-6 text-center shadow-sm"
+                className="min-w-0 rounded-2xl border border-slate-200/90 bg-white p-4 text-center shadow-sm sm:p-6"
                 variants={fadeUp}
                 initial="hidden"
                 whileInView="show"
@@ -399,7 +399,7 @@ export default function AboutPage() {
                 transition={{ type: "spring", stiffness: 400, damping: 22 }}
               >
                 <motion.p
-                  className="font-display text-3xl font-bold text-brand-700 md:text-4xl"
+                  className="font-display text-2xl font-bold text-brand-700 sm:text-3xl md:text-4xl"
                   initial={false}
                   whileHover={{ scale: 1.05 }}
                 >
@@ -413,7 +413,7 @@ export default function AboutPage() {
       </section>
 
       <section className="border-b border-slate-200/80 bg-white py-14 sm:py-16 md:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto w-full max-w-none px-[20px]">
           <motion.div
             className="grid gap-10 lg:grid-cols-12 lg:gap-14 lg:items-start"
             initial={{ opacity: 0, y: 20 }}
@@ -434,7 +434,7 @@ export default function AboutPage() {
       </section>
 
       <section className="border-b border-slate-200/80 bg-slate-50 py-14 sm:py-16 md:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto w-full max-w-none px-[20px]">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-600">{t("aboutPage.valuesKicker")}</p>
             <h2 className="mt-3 font-display text-2xl font-bold text-ink-950 md:text-3xl">{t("aboutPage.valuesTitle")}</h2>
@@ -460,7 +460,7 @@ export default function AboutPage() {
       </section>
 
       <section className="border-b border-slate-200/80 bg-white py-14 sm:py-16 md:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto w-full max-w-none px-[20px]">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-600">{t("aboutPage.processKicker")}</p>
             <h2 className="mt-3 font-display text-2xl font-bold text-ink-950 md:text-3xl">{t("aboutPage.processTitle")}</h2>
@@ -494,7 +494,7 @@ export default function AboutPage() {
       </section>
 
       <section className="border-b border-slate-200/80 bg-slate-50 py-14 sm:py-16 md:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto w-full max-w-none px-[20px]">
           <motion.div
             className="mx-auto max-w-2xl text-center"
             initial={{ opacity: 0, y: 12 }}
@@ -512,7 +512,7 @@ export default function AboutPage() {
 
       <section className="relative overflow-hidden bg-ink-950 py-16 text-white sm:py-20">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(45,212,191,0.12),transparent)]" aria-hidden />
-        <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
+        <div className="relative mx-auto w-full max-w-none px-[20px] text-center">
           <h2 className="font-display text-2xl font-bold sm:text-3xl md:text-4xl">{t("aboutPage.ctaTitle")}</h2>
           <p className="mx-auto mt-4 max-w-xl text-slate-300 leading-relaxed">{t("aboutPage.ctaSubtitle")}</p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5">

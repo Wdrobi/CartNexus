@@ -3,6 +3,19 @@ import { pool } from "../db/pool.js";
 
 const router = Router();
 
+function parseJsonColumn(value) {
+  if (value == null) return null;
+  if (typeof value === "object" && !Buffer.isBuffer(value)) return value;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 router.get("/", async (req, res) => {
   const {
     category: categorySlug,
@@ -12,6 +25,8 @@ router.get("/", async (req, res) => {
     in_stock: inStockRaw,
     sale: saleRaw,
     has_image: hasImageRaw,
+    min_price: minPriceRaw,
+    max_price: maxPriceRaw,
     limit = "24",
     offset = "0",
   } = req.query;
@@ -56,6 +71,17 @@ router.get("/", async (req, res) => {
       const term = `%${q}%`;
       whereExtra += ` AND (p.name_bn LIKE ? OR p.name_en LIKE ? OR p.slug LIKE ?)`;
       whereParams.push(term, term, term);
+    }
+
+    const minP = minPriceRaw != null && String(minPriceRaw).trim() !== "" ? Number(minPriceRaw) : NaN;
+    if (!Number.isNaN(minP) && minP >= 0) {
+      whereExtra += ` AND p.price >= ?`;
+      whereParams.push(minP);
+    }
+    const maxP = maxPriceRaw != null && String(maxPriceRaw).trim() !== "" ? Number(maxPriceRaw) : NaN;
+    if (!Number.isNaN(maxP) && maxP >= 0) {
+      whereExtra += ` AND p.price <= ?`;
+      whereParams.push(maxP);
     }
 
     const [[countRow]] = await pool.query(
@@ -114,9 +140,9 @@ router.get("/:slug", async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT p.id, p.category_id, p.brand_id, p.name_bn, p.name_en, p.slug,
-              p.description_bn, p.description_en, p.price, p.compare_at_price,
-              p.image_url, p.stock, p.created_at,
-              c.slug AS category_slug, c.name_bn AS category_name_bn, c.name_en AS category_name_en,
+              p.description_bn, p.description_en, p.description_sections_en, p.description_sections_bn,
+              p.price, p.compare_at_price, p.image_url, p.stock, p.created_at,
+              c.slug AS category_slug, c.page_layout, c.name_bn AS category_name_bn, c.name_en AS category_name_en,
               b.slug AS brand_slug, b.name_bn AS brand_name_bn, b.name_en AS brand_name_en
        FROM products p
        INNER JOIN categories c ON c.id = p.category_id
@@ -128,7 +154,32 @@ router.get("/:slug", async (req, res) => {
     if (!rows.length) {
       return res.status(404).json({ error: "not_found" });
     }
-    res.json({ product: rows[0] });
+    const row = rows[0];
+    let colorVariants = [];
+    try {
+      const [vrows] = await pool.query(
+        `SELECT id, sort_order, name_en, name_bn, image_url, stock
+         FROM product_color_variants
+         WHERE product_id = ?
+         ORDER BY sort_order ASC, id ASC`,
+        [row.id]
+      );
+      colorVariants = vrows || [];
+    } catch {
+      colorVariants = [];
+    }
+    const {
+      description_sections_en: rawEn,
+      description_sections_bn: rawBn,
+      ...base
+    } = row;
+    const product = {
+      ...base,
+      description_sections_en: parseJsonColumn(rawEn),
+      description_sections_bn: parseJsonColumn(rawBn),
+      color_variants: colorVariants,
+    };
+    res.json({ product });
   } catch (e) {
     res.status(500).json({ error: "database_error", message: e.message });
   }

@@ -43,7 +43,7 @@ export default function BlogListPage() {
   const [featured, ...rest] = posts;
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-dvh min-w-0 bg-slate-100 text-slate-900">
       <BlogIndexSeo
         posts={posts}
         title={t("blogPage.metaTitle")}
@@ -57,7 +57,7 @@ export default function BlogListPage() {
         <div className="pointer-events-none absolute inset-0 bg-hero-mesh opacity-90" aria-hidden />
         <div className="pointer-events-none absolute -right-20 top-1/4 h-96 w-96 rounded-full bg-brand-500/20 blur-3xl" aria-hidden />
         <div className="pointer-events-none absolute -left-16 bottom-0 h-72 w-72 rounded-full bg-teal-500/10 blur-3xl" aria-hidden />
-        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 md:py-24">
+        <div className="relative mx-auto w-full max-w-none px-[20px] py-16 sm:py-20 md:py-24">
           <motion.p
             className="text-xs font-bold uppercase tracking-[0.28em] text-brand-400"
             initial={{ opacity: 0, y: 10 }}
@@ -66,7 +66,7 @@ export default function BlogListPage() {
             {t("blogPage.heroKicker")}
           </motion.p>
           <motion.h1
-            className="mt-4 max-w-3xl font-display text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl md:leading-tight"
+            className="mt-4 max-w-3xl break-words font-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl lg:leading-tight"
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
@@ -101,7 +101,7 @@ export default function BlogListPage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
+      <div className="mx-auto w-full max-w-none px-[20px] py-12 sm:py-16">
         {featured ? (
           <motion.article
             initial={{ opacity: 0, y: 20 }}

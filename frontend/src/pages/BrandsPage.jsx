@@ -39,12 +39,12 @@ export default function BrandsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-dvh min-w-0 bg-slate-100 text-slate-900">
       <SiteHeader />
 
-      <main className="mx-auto max-w-[1440px] px-4 pb-24 pt-6 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-none px-[20px] pb-24 pt-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-ink-950 md:text-4xl">
+          <h1 className="font-display text-2xl font-bold tracking-tight text-ink-950 sm:text-3xl md:text-4xl">
             {t("brandsPage.title")}
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-600 md:text-base">{t("brandsPage.subtitle")}</p>
@@ -78,7 +78,7 @@ export default function BrandsPage() {
               >
                 <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition hover:border-brand-300/70 hover:shadow-md">
                   <Link
-                    to={`/shop?brand=${encodeURIComponent(b.slug)}`}
+                    to={`/brands/${encodeURIComponent(b.slug)}`}
                     className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200"
                   >
                     <SafeImage
@@ -102,7 +102,7 @@ export default function BrandsPage() {
                   <div className="flex flex-1 flex-col p-4">
                     <p className="text-sm text-slate-600 line-clamp-2">{t("brandsPage.cardHint")}</p>
                     <Link
-                      to={`/shop?brand=${encodeURIComponent(b.slug)}`}
+                      to={`/brands/${encodeURIComponent(b.slug)}`}
                       className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-ink-950 py-3 text-sm font-semibold text-white transition hover:bg-ink-900"
                     >
                       {t("brandsPage.shopBrand")}

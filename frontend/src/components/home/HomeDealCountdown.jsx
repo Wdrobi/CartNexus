@@ -32,7 +32,7 @@ export default function HomeDealCountdown() {
 
   return (
     <section className="border-y border-brand-100 bg-white py-12 sm:py-14">
-      <div className="mx-auto max-w-7xl px-5 sm:px-6">
+      <div className="w-full px-[20px]">
         <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
           <div className="max-w-xl">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-600">{t("home.dmDealKicker")}</p>

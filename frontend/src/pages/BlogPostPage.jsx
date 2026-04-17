@@ -47,14 +47,14 @@ export default function BlogPostPage() {
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-slate-100 text-slate-900">
+      <div className="min-h-dvh min-w-0 bg-slate-100 text-slate-900">
         <BlogNotFoundSeo
           title={`${t("blogPage.notFoundTitle")} | CartNexus`}
           description={t("blogPage.notFoundBody")}
           lang={lang}
         />
         <SiteHeader />
-        <main className="mx-auto max-w-lg px-4 py-24 text-center sm:px-6">
+        <main className="mx-auto w-full max-w-none px-[20px] py-24 text-center">
           <h1 className="font-display text-2xl font-bold text-ink-950">{t("blogPage.notFoundTitle")}</h1>
           <p className="mt-4 text-slate-600">{t("blogPage.notFoundBody")}</p>
           <Link
@@ -73,7 +73,7 @@ export default function BlogPostPage() {
   const title = pickLocalized(post.title, lang);
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-dvh min-w-0 bg-slate-100 text-slate-900">
       <BlogArticleSeo post={post} lang={lang} />
       <SiteHeader />
 
@@ -82,7 +82,7 @@ export default function BlogPostPage() {
           className={`relative overflow-hidden bg-gradient-to-br ${post.gradient} text-white`}
         >
           <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2240%22%20height%3D%2240%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M0%200h40v40H0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M20%200v40M0%2020h40%22%20stroke%3D%22%23ffffff%22%20stroke-opacity%3D%22.06%22%2F%3E%3C%2Fsvg%3E')] opacity-80" aria-hidden />
-          <div className="relative mx-auto max-w-3xl px-4 py-14 sm:px-6 sm:py-16 md:py-20">
+          <div className="relative mx-auto w-full max-w-none px-[20px] py-14 sm:py-16 md:py-20">
             <nav className="flex flex-wrap items-center gap-2 text-sm text-white/80" aria-label="Breadcrumb">
               <Link to="/" className="transition hover:text-white">
                 {t("blogPage.breadcrumbHome")}
@@ -97,7 +97,7 @@ export default function BlogPostPage() {
             <p className="mt-8 text-xs font-bold uppercase tracking-[0.25em] text-white/70">
               {pickLocalized(post.category, lang)}
             </p>
-            <h1 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-[2.75rem] md:leading-[1.15]">
+            <h1 className="mt-4 break-words font-display text-2xl font-bold leading-tight tracking-tight sm:text-3xl md:text-[2.75rem] md:leading-[1.15] lg:text-4xl">
               {title}
             </h1>
             <p className="mt-6 text-base leading-relaxed text-white/90 sm:text-lg">{pickLocalized(post.excerpt, lang)}</p>
@@ -112,7 +112,7 @@ export default function BlogPostPage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
+        <div className="mx-auto w-full max-w-none px-[20px] py-12 sm:py-16">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}

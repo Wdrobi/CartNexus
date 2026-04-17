@@ -10,7 +10,15 @@ const emptyForm = {
   name_en: "",
   slug: "",
   sort_order: 0,
+  page_layout: "clothing",
 };
+
+const PAGE_LAYOUT_OPTIONS = [
+  { value: "clothing", labelKey: "admin.crud.pageLayoutClothing" },
+  { value: "footwear", labelKey: "admin.crud.pageLayoutFootwear" },
+  { value: "accessories", labelKey: "admin.crud.pageLayoutAccessories" },
+  { value: "grooming", labelKey: "admin.crud.pageLayoutGrooming" },
+];
 
 export default function AdminCategories() {
   const { t, i18n } = useTranslation();
@@ -44,6 +52,7 @@ export default function AdminCategories() {
       name_en: row.name_en,
       slug: row.slug,
       sort_order: row.sort_order,
+      page_layout: row.page_layout || "clothing",
     });
   }
 
@@ -59,6 +68,7 @@ export default function AdminCategories() {
       name_en: form.name_en,
       slug: form.slug || slugify(form.name_en),
       sort_order: Number(form.sort_order) || 0,
+      page_layout: form.page_layout || "clothing",
     };
     const r = await authFetch("/api/admin/categories", {
       method: "POST",
@@ -83,6 +93,7 @@ export default function AdminCategories() {
         name_en: form.name_en,
         slug: form.slug,
         sort_order: Number(form.sort_order) || 0,
+        page_layout: form.page_layout || "clothing",
       }),
     });
     const data = await r.json().catch(() => ({}));
@@ -160,6 +171,20 @@ export default function AdminCategories() {
             onChange={(e) => setForm((f) => ({ ...f, sort_order: e.target.value }))}
           />
         </div>
+        <div>
+          <label className="text-xs text-slate-500">{t("admin.crud.pageLayout")}</label>
+          <select
+            className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white"
+            value={form.page_layout}
+            onChange={(e) => setForm((f) => ({ ...f, page_layout: e.target.value }))}
+          >
+            {PAGE_LAYOUT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {t(opt.labelKey)}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-3">
           <button
             type="submit"
@@ -190,6 +215,7 @@ export default function AdminCategories() {
                 <th className="px-4 py-3">{t("admin.table.name")}</th>
                 <th className="px-4 py-3">{t("admin.crud.slug")}</th>
                 <th className="px-4 py-3">{t("admin.crud.sortOrder")}</th>
+                <th className="px-4 py-3">{t("admin.crud.pageLayout")}</th>
                 <th className="px-4 py-3">{t("admin.crud.actions")}</th>
               </tr>
             </thead>
@@ -202,6 +228,9 @@ export default function AdminCategories() {
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-slate-400">{row.slug}</td>
                   <td className="px-4 py-3">{row.sort_order}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-400">
+                    {row.page_layout || "clothing"}
+                  </td>
                   <td className="px-4 py-3">
                     <button
                       type="button"

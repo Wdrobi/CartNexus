@@ -9,7 +9,7 @@ function bannerImg(photoId) {
 export const HOME_BANNERS = [
   {
     id: "footwear",
-    to: "/shop?category=footwear",
+    to: "/categories/footwear",
     image: bannerImg("photo-1542291026-7eec264c27ff"),
     badgeKey: "home.banner1Badge",
     titleKey: "home.banner1Title",
@@ -18,7 +18,7 @@ export const HOME_BANNERS = [
   },
   {
     id: "shirts",
-    to: "/shop?category=shirts",
+    to: "/categories/shirts",
     image: bannerImg("photo-1602810318383-e386cc2a3ccf"),
     badgeKey: "home.banner2Badge",
     titleKey: "home.banner2Title",
@@ -27,7 +27,7 @@ export const HOME_BANNERS = [
   },
   {
     id: "grooming",
-    to: "/shop?category=grooming-skincare",
+    to: "/categories/grooming-skincare",
     image: bannerImg("photo-1434389677669-e08b4cac3105"),
     badgeKey: "home.banner3Badge",
     titleKey: "home.banner3Title",

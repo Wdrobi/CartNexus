@@ -5,15 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
-import { formatPrice } from "../utils/price.js";
-import {
-  productName,
-  productDescription,
-  categoryName,
-  brandName,
-} from "../utils/productText.js";
-import { PRODUCT_IMAGE_FALLBACK, PRODUCT_IMAGE_FALLBACK_ALT } from "../utils/productImage.js";
-import SafeImage from "../components/SafeImage.jsx";
+import { brandName } from "../utils/productText.js";
+import ProductCard from "../components/ProductCard.jsx";
 
 function IconSearch({ className }) {
   return (
@@ -40,7 +33,23 @@ function IconClose({ className }) {
   );
 }
 
+/** Sliders + lines — filter header icon */
+function IconSliders({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" aria-hidden>
+      <path d="M4 6h4M4 12h2M4 18h6" strokeLinecap="round" />
+      <path d="M10 6h10M8 12h14M14 18h6" strokeLinecap="round" />
+      <circle cx="9" cy="6" r="2" fill="currentColor" stroke="none" />
+      <circle cx="7" cy="12" r="2" fill="currentColor" stroke="none" />
+      <circle cx="11" cy="18" r="2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 const PAGE_SIZE = 24;
+
+const FILTER_PINK = "bg-[#e91e63] border-transparent text-white shadow-sm";
+const FILTER_PINK_RING = "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e91e63] focus-visible:ring-offset-2";
 
 export default function ShopPage() {
   const { t, i18n } = useTranslation();
@@ -51,6 +60,8 @@ export default function ShopPage() {
   const sort = searchParams.get("sort") || "latest";
   const inStockOnly = searchParams.get("in_stock") === "1";
   const saleOnly = searchParams.get("sale") === "1";
+  const minPriceParam = searchParams.get("min_price") || "";
+  const maxPriceParam = searchParams.get("max_price") || "";
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
 
   const [localQ, setLocalQ] = useState(q);
@@ -61,6 +72,16 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterDraft, setFilterDraft] = useState({
+    category: "",
+    brand: "",
+    sort: "latest",
+    inStockOnly: false,
+    saleOnly: false,
+    minPrice: "",
+    maxPrice: "",
+  });
+  const filterDrawerWasOpen = useRef(false);
   const prevFilterKeyRef = useRef(null);
   const skipScrollRef = useRef(true);
 
@@ -94,7 +115,7 @@ export default function ShopPage() {
     [searchParams, setSearchParams]
   );
 
-  const filterKey = `${q}|${category}|${brand}|${sort}|${inStockOnly}|${saleOnly}`;
+  const filterKey = `${q}|${category}|${brand}|${sort}|${inStockOnly}|${saleOnly}|${minPriceParam}|${maxPriceParam}`;
 
   useEffect(() => {
     if (prevFilterKeyRef.current === null) {
@@ -110,6 +131,25 @@ export default function ShopPage() {
   }, [filterKey, searchParams, setSearchParams]);
 
   useEffect(() => {
+    if (filtersOpen) {
+      if (!filterDrawerWasOpen.current) {
+        setFilterDraft({
+          category: category || "",
+          brand: brand || "",
+          sort: sort || "latest",
+          inStockOnly,
+          saleOnly,
+          minPrice: searchParams.get("min_price") || "",
+          maxPrice: searchParams.get("max_price") || "",
+        });
+      }
+      filterDrawerWasOpen.current = true;
+    } else {
+      filterDrawerWasOpen.current = false;
+    }
+  }, [filtersOpen, category, brand, sort, inStockOnly, saleOnly, searchParams]);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -123,6 +163,8 @@ export default function ShopPage() {
     if (brand) params.set("brand", brand);
     if (inStockOnly) params.set("in_stock", "1");
     if (saleOnly) params.set("sale", "1");
+    if (minPriceParam.trim()) params.set("min_price", minPriceParam.trim());
+    if (maxPriceParam.trim()) params.set("max_price", maxPriceParam.trim());
     apiFetch(`/api/products?${params.toString()}`)
       .then((r) => {
         if (!r.ok) throw new Error(String(r.status));
@@ -143,7 +185,7 @@ export default function ShopPage() {
     return () => {
       cancelled = true;
     };
-  }, [q, category, brand, sort, inStockOnly, saleOnly, page]);
+  }, [q, category, brand, sort, inStockOnly, saleOnly, minPriceParam, maxPriceParam, page]);
 
   useEffect(() => {
     if (loading || totalCount === 0) return;
@@ -180,13 +222,65 @@ export default function ShopPage() {
 
   function clearAllFilters() {
     const next = new URLSearchParams();
-    if (sort && sort !== "latest") next.set("sort", sort);
     setSearchParams(next, { replace: true });
     setLocalQ("");
+    setFilterDraft({
+      category: "",
+      brand: "",
+      sort: "latest",
+      inStockOnly: false,
+      saleOnly: false,
+      minPrice: "",
+      maxPrice: "",
+    });
     setFiltersOpen(false);
   }
 
-  const hasActiveFilters = Boolean(q.trim() || category || brand || inStockOnly || saleOnly);
+  function applyFilterDraft() {
+    mergeParams({
+      category: filterDraft.category || undefined,
+      brand: filterDraft.brand || undefined,
+      sort: filterDraft.sort === "latest" ? undefined : filterDraft.sort,
+      in_stock: filterDraft.inStockOnly ? "1" : undefined,
+      sale: filterDraft.saleOnly ? "1" : undefined,
+      min_price: filterDraft.minPrice !== "" && filterDraft.minPrice != null ? String(filterDraft.minPrice).trim() : undefined,
+      max_price: filterDraft.maxPrice !== "" && filterDraft.maxPrice != null ? String(filterDraft.maxPrice).trim() : undefined,
+      page: undefined,
+    });
+    setFiltersOpen(false);
+  }
+
+  /** URL-level filters (anything that changes the product query) */
+  const hasActiveFilters = Boolean(
+    q.trim() ||
+      category ||
+      brand ||
+      inStockOnly ||
+      saleOnly ||
+      minPriceParam ||
+      maxPriceParam ||
+      sort !== "latest" ||
+      page > 1
+  );
+
+  /** Draft out of sync with URL (user changed pills but didn’t press Apply yet) */
+  const filterDraftMatchesUrl =
+    (filterDraft.category || "") === (category || "") &&
+    (filterDraft.brand || "") === (brand || "") &&
+    (filterDraft.sort || "latest") === (sort || "latest") &&
+    filterDraft.inStockOnly === inStockOnly &&
+    filterDraft.saleOnly === saleOnly &&
+    (filterDraft.minPrice || "").trim() === (minPriceParam || "") &&
+    (filterDraft.maxPrice || "").trim() === (maxPriceParam || "");
+
+  const canClearFilters = hasActiveFilters || !filterDraftMatchesUrl;
+
+  function filterPillClass(active) {
+    return [
+      "inline-flex shrink-0 items-center justify-center rounded-full border px-3 py-2 text-sm font-medium transition",
+      active ? `${FILTER_PINK} ${FILTER_PINK_RING}` : "border-gray-200 bg-white text-gray-800 hover:border-gray-300 hover:bg-gray-50",
+    ].join(" ");
+  }
 
   const activeBrandLabel =
     brand && brands.length
@@ -213,12 +307,12 @@ export default function ShopPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-dvh min-w-0 bg-slate-100 text-slate-900">
       <SiteHeader />
 
-      <main className="mx-auto max-w-[1440px] px-4 pb-24 pt-6 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-none px-[20px] pb-24 pt-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-ink-950 md:text-4xl">
+          <h1 className="font-display text-2xl font-bold tracking-tight text-ink-950 sm:text-3xl md:text-4xl">
             {t("shop.allProducts")}
           </h1>
           <p className="mt-1 text-sm text-slate-600 md:text-base">
@@ -238,20 +332,31 @@ export default function ShopPage() {
             value={localQ}
             onChange={(e) => setLocalQ(e.target.value)}
             placeholder={t("shop.searchPlaceholder")}
-            className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-12 pr-28 text-sm text-slate-900 shadow-sm outline-none ring-brand-500/0 transition placeholder:text-slate-400 focus:border-brand-500/50 focus:ring-2 focus:ring-brand-500/20 md:h-14 md:pl-14 md:text-[15px]"
+            className="h-12 w-full min-w-0 rounded-xl border border-slate-200 bg-white pl-12 pr-[5.25rem] text-sm text-slate-900 shadow-sm outline-none ring-brand-500/0 transition placeholder:text-slate-400 focus:border-brand-500/50 focus:ring-2 focus:ring-brand-500/20 sm:pr-28 md:h-14 md:pl-14 md:text-[15px]"
             autoComplete="off"
           />
           <button
             type="submit"
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-ink-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-ink-900 md:text-sm"
+            className="absolute right-2 top-1/2 shrink-0 -translate-y-1/2 rounded-lg bg-ink-950 px-3 py-2 text-[11px] font-semibold text-white transition hover:bg-ink-900 sm:px-4 sm:text-xs md:text-sm"
           >
             {t("shop.searchSubmit")}
           </button>
         </form>
 
-        {(q || category || brand || saleOnly) && (
-          <p className="mt-3 text-sm text-brand-700">
-            {[q && t("shop.filterSearch", { q }), category && t("shop.filterCategory", { category }), brand && t("shop.filterBrand", { brand: activeBrandLabel }), saleOnly && t("shop.filterSale")]
+        {(q || category || brand || saleOnly || inStockOnly || minPriceParam || maxPriceParam) && (
+          <p className="mt-3 break-words text-sm text-brand-700">
+            {[
+              q && t("shop.filterSearch", { q }),
+              category && t("shop.filterCategory", { category }),
+              brand && t("shop.filterBrand", { brand: activeBrandLabel }),
+              saleOnly && t("shop.filterSale"),
+              inStockOnly && t("shop.filterInStockOnly"),
+              (minPriceParam || maxPriceParam) &&
+                t("shop.filterPriceSummary", {
+                  min: minPriceParam || "—",
+                  max: maxPriceParam || "—",
+                }),
+            ]
               .filter(Boolean)
               .join(" · ")}
           </p>
@@ -307,105 +412,27 @@ export default function ShopPage() {
           <p className="mt-12 text-center text-slate-500">{t("shop.empty")}</p>
         )}
 
-        <ul className="mt-10 grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-          {products.map((p, idx) => {
-            const inStock = Number(p.stock) > 0;
-            return (
-              <motion.li
-                key={p.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(0.03 * idx, 0.45), duration: 0.35 }}
-                className="flex"
-              >
-                <article className="group flex w-full flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm transition hover:border-brand-300/60 hover:shadow-md">
-                  <div className="relative aspect-square bg-slate-50">
-                    <span
-                      className={`absolute left-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide sm:text-xs ${
-                        inStock
-                          ? "bg-brand-100 text-brand-800"
-                          : "bg-rose-100 text-rose-800"
-                      }`}
-                    >
-                      {inStock ? t("shop.inStock") : t("shop.outOfStock")}
-                    </span>
-                    <div className="pointer-events-none absolute right-2 top-2 z-10 text-right font-display text-[9px] font-bold leading-tight text-slate-300 sm:text-[10px]">
-                      <span className="block text-ink-950/40">CART</span>
-                      <span className="block text-brand-500/50">NEXUS</span>
-                    </div>
-                    <Link
-                      to={`/shop/${p.slug}`}
-                      className="relative block h-full w-full overflow-hidden"
-                      aria-label={productName(p, i18n.language)}
-                    >
-                      <SafeImage
-                        src={p.image_url ?? p.imageUrl}
-                        seed={p.id}
-                        fallback={PRODUCT_IMAGE_FALLBACK}
-                        fallbackAlt={PRODUCT_IMAGE_FALLBACK_ALT}
-                        alt=""
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </Link>
-                  </div>
-                  <div className="flex flex-1 flex-col p-3 sm:p-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-700 sm:text-xs">
-                      {categoryName(
-                        {
-                          name_bn: p.category_name_bn,
-                          name_en: p.category_name_en,
-                        },
-                        i18n.language
-                      )}
-                      {p.brand_slug ? (
-                        <>
-                          {" · "}
-                          <Link
-                            to={`/shop?brand=${encodeURIComponent(p.brand_slug)}`}
-                            className="hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {brandName(
-                              {
-                                name_bn: p.brand_name_bn,
-                                name_en: p.brand_name_en,
-                              },
-                              i18n.language
-                            )}
-                          </Link>
-                        </>
-                      ) : null}
-                    </p>
-                    <Link
-                      to={`/shop/${p.slug}`}
-                      className="mt-1 line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-ink-950 hover:text-brand-700 sm:min-h-[2.75rem] sm:text-[15px]"
-                    >
-                      {productName(p, i18n.language)}
-                    </Link>
-                    <p className="mt-1 line-clamp-2 text-xs text-slate-500 sm:text-sm">
-                      {productDescription(p, i18n.language)}
-                    </p>
-                    <p className="mt-3 font-display text-base font-bold text-ink-950 sm:text-lg">
-                      {formatPrice(p.price, i18n.language)}
-                      {p.compare_at_price ? (
-                        <span className="ml-2 text-xs font-normal text-slate-400 line-through sm:text-sm">
-                          {formatPrice(p.compare_at_price, i18n.language)}
-                        </span>
-                      ) : null}
-                    </p>
-                    <Link
-                      to={`/shop/${p.slug}`}
-                      className="mt-auto flex w-full items-center justify-center rounded-lg border border-slate-200 bg-slate-50 py-2.5 text-center text-xs font-semibold text-slate-800 transition hover:border-brand-400 hover:bg-brand-50 hover:text-brand-900 sm:py-3 sm:text-sm"
-                    >
-                      {inStock ? t("shop.addToCart") : t("shop.viewProduct")}
-                    </Link>
-                  </div>
-                </article>
-              </motion.li>
-            );
-          })}
+        <ul className="mt-10 grid grid-cols-2 items-stretch gap-4 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+          {products.map((p, idx) => (
+            <motion.li
+              key={p.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(0.03 * idx, 0.45), duration: 0.35 }}
+              className="flex h-full min-h-0 min-w-0"
+            >
+              <ProductCard
+                product={p}
+                brandHref={
+                  p.brand_slug && p.category_slug
+                    ? `/brands/${encodeURIComponent(p.brand_slug)}?category=${encodeURIComponent(p.category_slug)}`
+                    : p.brand_slug
+                      ? `/brands/${encodeURIComponent(p.brand_slug)}`
+                      : null
+                }
+              />
+            </motion.li>
+          ))}
         </ul>
 
         {!loading && !error && totalPages > 1 && (
@@ -460,104 +487,182 @@ export default function ShopPage() {
               exit={{ x: "100%" }}
               transition={{ type: "tween", duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-                <h2 id="shop-filters-title" className="font-display text-lg font-bold text-ink-950">
-                  {t("shop.filtersTitle")}
+              <div className="flex shrink-0 items-center gap-3 border-b border-gray-200 px-5 py-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
+                  <IconSliders className="h-5 w-5" />
+                </div>
+                <h2 id="shop-filters-title" className="font-display flex-1 text-lg font-bold text-gray-900">
+                  {t("shop.filtersDrawerTitle")}
                 </h2>
                 <button
                   type="button"
                   onClick={() => setFiltersOpen(false)}
-                  className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-ink-950"
+                  className="rounded-full p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-800"
                   aria-label={t("shop.closePanel")}
                 >
                   <IconClose className="h-5 w-5" />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto px-5 py-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {t("shop.filterCategoryHint")}
-                </p>
-                <ul className="mt-3 space-y-1">
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        mergeParams({ category: undefined, page: undefined });
-                      }}
-                      className={`w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${
-                        !category ? "bg-brand-50 text-brand-900" : "text-slate-700 hover:bg-slate-50"
-                      }`}
-                    >
-                      {t("shop.filterAllCategories")}
-                    </button>
-                  </li>
-                  {categories.map((c) => (
-                    <li key={c.id}>
+
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 [scrollbar-width:thin] [scrollbar-color:rgba(0,0,0,0.25)_transparent]">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-gray-900">{t("shop.filterCategoriesTitle")}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => mergeParams({ category: c.slug, page: undefined })}
-                        className={`w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${
-                          category === c.slug ? "bg-brand-50 text-brand-900" : "text-slate-700 hover:bg-slate-50"
-                        }`}
+                        onClick={() => setFilterDraft((d) => ({ ...d, category: "" }))}
+                        className={filterPillClass(!filterDraft.category)}
                       >
-                        {i18n.language?.startsWith("bn") ? c.name_bn : c.name_en}
+                        {t("shop.filterAllCategories")}
                       </button>
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {t("shop.filterBrandHint")}
-                </p>
-                <ul className="mt-3 space-y-1">
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => mergeParams({ brand: undefined, page: undefined })}
-                      className={`w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${
-                        !brand ? "bg-brand-50 text-brand-900" : "text-slate-700 hover:bg-slate-50"
-                      }`}
-                    >
-                      {t("shop.filterAllBrands")}
-                    </button>
-                  </li>
-                  {brands.map((b) => (
-                    <li key={b.id}>
+                      {categories.map((c) => {
+                        const name = i18n.language?.startsWith("bn") ? c.name_bn : c.name_en;
+                        const active = filterDraft.category === c.slug;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => setFilterDraft((d) => ({ ...d, category: c.slug }))}
+                            className={filterPillClass(active)}
+                          >
+                            {name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mt-8 border-t border-gray-200 pt-8">
+                    <p className="text-xs font-bold uppercase tracking-wide text-gray-900">{t("shop.filterBrandsTitle")}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => mergeParams({ brand: b.slug, page: undefined })}
-                        className={`w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${
-                          brand === b.slug ? "bg-brand-50 text-brand-900" : "text-slate-700 hover:bg-slate-50"
-                        }`}
+                        onClick={() => setFilterDraft((d) => ({ ...d, brand: "" }))}
+                        className={filterPillClass(!filterDraft.brand)}
                       >
-                        {brandName(b, i18n.language)}
+                        {t("shop.filterAllBrands")}
                       </button>
-                    </li>
-                  ))}
-                </ul>
-                <label className="mt-8 flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={inStockOnly}
-                    onChange={(e) =>
-                      mergeParams({
-                        in_stock: e.target.checked ? "1" : undefined,
-                        page: undefined,
-                      })
-                    }
-                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                  />
-                  <span className="text-sm font-medium text-slate-800">{t("shop.filterInStockOnly")}</span>
-                </label>
-              </div>
-              <div className="border-t border-slate-200 p-5">
-                <button
-                  type="button"
-                  onClick={clearAllFilters}
-                  disabled={!hasActiveFilters}
-                  className="w-full rounded-xl border border-slate-200 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {t("shop.clearFilters")}
-                </button>
+                      {brands.map((b) => {
+                        const active = filterDraft.brand === b.slug;
+                        return (
+                          <button
+                            key={b.id}
+                            type="button"
+                            onClick={() => setFilterDraft((d) => ({ ...d, brand: b.slug }))}
+                            className={filterPillClass(active)}
+                          >
+                            {brandName(b, i18n.language)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mt-8 border-t border-gray-200 pt-8">
+                    <p className="text-xs font-bold uppercase tracking-wide text-gray-900">{t("shop.filterSectionSort")}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {sortOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setFilterDraft((d) => ({ ...d, sort: opt.value }))}
+                          className={filterPillClass(filterDraft.sort === opt.value)}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-8 border-t border-gray-200 pt-8">
+                    <p className="text-xs font-bold uppercase tracking-wide text-gray-900">{t("shop.filterSectionPrice")}</p>
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-500" htmlFor="shop-filter-min-price">
+                          {t("shop.filterMinPrice")}
+                        </label>
+                        <div className="relative mt-1">
+                          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                            ৳
+                          </span>
+                          <input
+                            id="shop-filter-min-price"
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            placeholder="0"
+                            value={filterDraft.minPrice}
+                            onChange={(e) => setFilterDraft((d) => ({ ...d, minPrice: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-8 pr-3 text-sm text-gray-900 outline-none ring-0 transition placeholder:text-gray-400 focus:border-[#e91e63]/40 focus:bg-white focus:ring-2 focus:ring-[#e91e63]/15"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500" htmlFor="shop-filter-max-price">
+                          {t("shop.filterMaxPrice")}
+                        </label>
+                        <div className="relative mt-1">
+                          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                            ৳
+                          </span>
+                          <input
+                            id="shop-filter-max-price"
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            placeholder="10000"
+                            value={filterDraft.maxPrice}
+                            onChange={(e) => setFilterDraft((d) => ({ ...d, maxPrice: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-8 pr-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-[#e91e63]/40 focus:bg-white focus:ring-2 focus:ring-[#e91e63]/15"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 border-t border-gray-200 pt-8">
+                    <p className="text-xs font-bold uppercase tracking-wide text-gray-900">{t("shop.filterSectionAvailability")}</p>
+                    <div className="mt-3 space-y-3">
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                        <span className="text-sm font-medium text-gray-900">{t("shop.filterInStockOnly")}</span>
+                        <input
+                          type="checkbox"
+                          checked={filterDraft.inStockOnly}
+                          onChange={(e) => setFilterDraft((d) => ({ ...d, inStockOnly: e.target.checked }))}
+                          className="h-5 w-5 shrink-0 rounded border-gray-300 text-[#e91e63] focus:ring-[#e91e63]"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                        <span className="text-sm font-medium text-gray-900">{t("shop.filterSale")}</span>
+                        <input
+                          type="checkbox"
+                          checked={filterDraft.saleOnly}
+                          onChange={(e) => setFilterDraft((d) => ({ ...d, saleOnly: e.target.checked }))}
+                          className="h-5 w-5 shrink-0 rounded border-gray-300 text-[#e91e63] focus:ring-[#e91e63]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="shrink-0 space-y-3 border-t border-gray-200 bg-white p-4">
+                  <button
+                    type="button"
+                    onClick={applyFilterDraft}
+                    className="w-full rounded-xl bg-[#e91e63] py-3.5 text-sm font-bold text-white shadow-md shadow-pink-500/30 transition hover:bg-[#d81b60] hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e91e63] focus-visible:ring-offset-2 active:scale-[0.99]"
+                  >
+                    {t("shop.applyFilters")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    disabled={!canClearFilters}
+                    className="w-full rounded-xl border border-gray-200 bg-white py-3.5 text-sm font-bold text-gray-900 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {t("shop.clearFilters")}
+                  </button>
+                </div>
               </div>
             </motion.aside>
           </>

@@ -129,13 +129,13 @@ export default function ContactPage() {
   const faqIds = [1, 2, 3, 4, 5];
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-dvh min-w-0 bg-slate-100 text-slate-900">
       <SiteHeader />
 
       <section className="relative overflow-hidden bg-ink-950 text-white">
         <div className="pointer-events-none absolute inset-0 bg-grid-fade opacity-80" aria-hidden />
         <div className="pointer-events-none absolute inset-0 bg-hero-mesh opacity-90" aria-hidden />
-        <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 md:py-20">
+        <div className="relative w-full px-[20px] py-14 sm:py-16 md:py-20">
           <motion.p
             className="text-xs font-bold uppercase tracking-[0.25em] text-brand-400"
             initial={{ opacity: 0, y: 10 }}
@@ -144,7 +144,7 @@ export default function ContactPage() {
             {t("contactPage.heroKicker")}
           </motion.p>
           <motion.h1
-            className="mt-4 max-w-3xl font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-5xl"
+            className="mt-4 max-w-3xl break-words font-display text-2xl font-bold leading-tight tracking-tight sm:text-3xl md:text-4xl lg:text-5xl"
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
@@ -163,9 +163,9 @@ export default function ContactPage() {
       </section>
 
       <section className="border-b border-slate-200/80 bg-white py-12 sm:py-16 md:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="grid gap-10 lg:grid-cols-12 lg:gap-12">
-            <div className="space-y-6 lg:col-span-5">
+        <div className="w-full px-[20px]">
+          <div className="grid min-w-0 gap-10 lg:grid-cols-12 lg:gap-12">
+            <div className="min-w-0 space-y-6 lg:col-span-5">
               <h2 className="font-display text-xl font-bold text-ink-950 md:text-2xl">
                 {t("contactPage.infoSectionTitle")}
               </h2>
@@ -173,7 +173,7 @@ export default function ContactPage() {
                 {infoCards.map(({ icon: Icon, titleKey, bodyKey, subKey }, idx) => (
                   <motion.li
                     key={titleKey}
-                    className="flex gap-4 rounded-2xl border border-slate-200/90 bg-slate-50/80 p-5 transition hover:border-brand-200/80 hover:bg-white"
+                    className="flex min-w-0 gap-4 rounded-2xl border border-slate-200/90 bg-slate-50/80 p-5 transition hover:border-brand-200/80 hover:bg-white"
                     variants={fadeUp}
                     initial="hidden"
                     whileInView="show"
@@ -183,7 +183,7 @@ export default function ContactPage() {
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
                       <Icon className="h-6 w-6" />
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <h3 className="font-display text-sm font-bold uppercase tracking-wide text-ink-950">
                         {t(`contactPage.${titleKey}`)}
                       </h3>
@@ -215,7 +215,7 @@ export default function ContactPage() {
               </div>
             </div>
 
-            <div className="lg:col-span-7">
+            <div className="min-w-0 lg:col-span-7">
               <motion.div
                 className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-lg shadow-slate-200/40 sm:p-8 md:p-10"
                 initial={{ opacity: 0, y: 20 }}
@@ -337,7 +337,7 @@ export default function ContactPage() {
         id="faq"
         className="scroll-mt-24 border-b border-slate-200/80 bg-slate-50 py-12 sm:py-16 md:py-20"
       >
-        <div className="mx-auto max-w-3xl px-4 sm:px-6">
+        <div className="mx-auto w-full max-w-none px-[20px]">
           <div className="text-center">
             <h2 className="font-display text-2xl font-bold text-ink-950 md:text-3xl">{t("contactPage.faqTitle")}</h2>
             <p className="mt-3 text-slate-600">{t("contactPage.faqSubtitle")}</p>
@@ -377,7 +377,7 @@ export default function ContactPage() {
 
       <section className="relative overflow-hidden bg-ink-950 py-14 text-white sm:py-16">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(45,212,191,0.12),transparent)]" aria-hidden />
-        <div className="relative mx-auto max-w-3xl px-4 text-center sm:px-6">
+        <div className="relative mx-auto w-full max-w-none px-[20px] text-center">
           <h2 className="font-display text-2xl font-bold sm:text-3xl">{t("contactPage.ctaTitle")}</h2>
           <p className="mx-auto mt-3 max-w-lg text-slate-300">{t("contactPage.ctaSubtitle")}</p>
           <Link

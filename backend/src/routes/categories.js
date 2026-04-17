@@ -6,7 +6,7 @@ const router = Router();
 router.get("/", async (_req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT c.id, c.name_bn, c.name_en, c.slug, c.sort_order,
+      `SELECT c.id, c.name_bn, c.name_en, c.slug, c.sort_order, c.page_layout,
         (SELECT COUNT(*) FROM products p
          WHERE p.category_id = c.id AND p.is_active = 1) AS product_count,
         (SELECT p.image_url FROM products p

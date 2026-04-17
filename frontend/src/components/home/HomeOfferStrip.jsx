@@ -6,7 +6,7 @@ export default function HomeOfferStrip() {
 
   return (
     <section className="border-y border-brand-100 bg-brand-50/70 py-3.5 sm:py-4">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 sm:flex-row sm:px-6">
+      <div className="flex w-full flex-col items-center justify-between gap-3 px-[20px] sm:flex-row">
         <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:gap-4 sm:text-left">
           <span className="shrink-0 rounded-full border border-brand-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand-800">
             {t("home.offerStripBadge")}
