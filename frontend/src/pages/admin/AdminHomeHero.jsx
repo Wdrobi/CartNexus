@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { resolvePublicAssetUrl } from "../../api/apiBase.js";
 import { authFetch } from "../../api/authFetch.js";
+import { uploadCatalogCoverImage } from "../../api/catalogCoverUpload.js";
 import { translateAdminError } from "../../utils/adminApiError.js";
 
 const empty = {
@@ -24,6 +26,8 @@ export default function AdminHomeHero() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [savedOk, setSavedOk] = useState(false);
+  const [image1Uploading, setImage1Uploading] = useState(false);
+  const [image2Uploading, setImage2Uploading] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -55,6 +59,28 @@ export default function AdminHomeHero() {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function onBannerImageFile(slot, e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    if (slot === 1) setImage1Uploading(true);
+    else setImage2Uploading(true);
+    try {
+      const url = await uploadCatalogCoverImage(file);
+      if (slot === 1) {
+        setForm((f) => ({ ...f, image_1_url: url }));
+      } else {
+        setForm((f) => ({ ...f, image_2_url: url }));
+      }
+    } catch (err) {
+      setError(err?.message || "upload");
+    } finally {
+      if (slot === 1) setImage1Uploading(false);
+      else setImage2Uploading(false);
+    }
+  }
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -189,25 +215,67 @@ export default function AdminHomeHero() {
             placeholder="/shop"
           />
         </label>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block text-sm">
-            <span className="text-slate-300">{t("admin.homeHero.image1")}</span>
+        <div className="grid gap-6 sm:grid-cols-2">
+          <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <span className="block text-sm font-medium text-slate-300">{t("admin.homeHero.image1")}</span>
+            <p className="text-[11px] leading-relaxed text-slate-400">{t("admin.crud.imageUploadNote")}</p>
             <input
               className="mt-1 w-full rounded-lg border border-white/10 bg-ink-900 px-3 py-2 text-white"
               value={form.image_1_url}
               onChange={(e) => setForm((f) => ({ ...f, image_1_url: e.target.value }))}
               placeholder="https://… or /uploads/…"
             />
-          </label>
-          <label className="block text-sm">
-            <span className="text-slate-300">{t("admin.homeHero.image2")}</span>
+            <label className="inline-flex cursor-pointer rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-xs text-slate-200 hover:bg-white/10">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="sr-only"
+                disabled={saving || image1Uploading}
+                onChange={(e) => onBannerImageFile(1, e)}
+              />
+              {image1Uploading ? t("shop.loading") : t("admin.crud.catalogCoverUpload")}
+            </label>
+            {form.image_1_url.trim() ? (
+              <div className="mt-2 overflow-hidden rounded-lg border border-white/10 bg-black/30">
+                <img
+                  src={resolvePublicAssetUrl(form.image_1_url.trim())}
+                  alt=""
+                  className="max-h-40 w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            ) : null}
+          </div>
+          <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <span className="block text-sm font-medium text-slate-300">{t("admin.homeHero.image2")}</span>
+            <p className="text-[11px] leading-relaxed text-slate-400">{t("admin.crud.imageUploadNote")}</p>
             <input
               className="mt-1 w-full rounded-lg border border-white/10 bg-ink-900 px-3 py-2 text-white"
               value={form.image_2_url}
               onChange={(e) => setForm((f) => ({ ...f, image_2_url: e.target.value }))}
               placeholder="https://… or /uploads/…"
             />
-          </label>
+            <label className="inline-flex cursor-pointer rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-xs text-slate-200 hover:bg-white/10">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="sr-only"
+                disabled={saving || image2Uploading}
+                onChange={(e) => onBannerImageFile(2, e)}
+              />
+              {image2Uploading ? t("shop.loading") : t("admin.crud.catalogCoverUpload")}
+            </label>
+            {form.image_2_url.trim() ? (
+              <div className="mt-2 overflow-hidden rounded-lg border border-white/10 bg-black/30">
+                <img
+                  src={resolvePublicAssetUrl(form.image_2_url.trim())}
+                  alt=""
+                  className="max-h-40 w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            ) : null}
+          </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">

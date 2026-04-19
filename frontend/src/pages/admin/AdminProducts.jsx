@@ -1,11 +1,60 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { apiFetch } from "../../api/apiBase.js";
+import { Link } from "react-router-dom";
+import { apiFetch, resolvePublicAssetUrl } from "../../api/apiBase.js";
 import { authFetch } from "../../api/authFetch.js";
+import { uploadCatalogCoverImage } from "../../api/catalogCoverUpload.js";
 import { productName } from "../../utils/productText.js";
 import { formatPrice } from "../../utils/price.js";
 import { slugify } from "../../utils/slug.js";
 import { translateAdminError } from "../../utils/adminApiError.js";
+import { PortalSelect } from "../../components/admin/PortalSelect.jsx";
+
+const PAGE_SIZE = 25;
+
+function IconEye() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function IconPencil() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <polyline points="3 6 5 6 21 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 function emptySection() {
   return { title: "", body: "" };
@@ -83,52 +132,103 @@ function sectionsToApi(rows) {
 export default function AdminProducts() {
   const { t, i18n } = useTranslation();
   const [products, setProducts] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [q, setQ] = useState("");
+  const [qDraft, setQDraft] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [brandId, setBrandId] = useState("all");
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
+  const [sort, setSort] = useState("id_desc");
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMinDraft, setPriceMinDraft] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+  const [priceMaxDraft, setPriceMaxDraft] = useState("");
+
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [metaLoading, setMetaLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(() => emptyForm([]));
   const [saving, setSaving] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [mainImageUploading, setMainImageUploading] = useState(false);
+  const [variantImageUploading, setVariantImageUploading] = useState(null);
 
   const loadProducts = useCallback(() => {
+    setProductsLoading(true);
     setError(null);
-    return authFetch("/api/admin/products")
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("pageSize", String(PAGE_SIZE));
+    params.set("sort", sort);
+    if (q.trim()) params.set("q", q.trim());
+    if (categoryId) params.set("categoryId", categoryId);
+    if (brandId === "none") params.set("brandId", "none");
+    else if (brandId !== "all") params.set("brandId", brandId);
+    if (activeFilter !== "all") params.set("active", activeFilter);
+    if (stockFilter !== "all") params.set("stock", stockFilter);
+    const minN = parseFloat(String(priceMin).trim());
+    if (String(priceMin).trim() !== "" && Number.isFinite(minN)) params.set("priceMin", String(minN));
+    const maxN = parseFloat(String(priceMax).trim());
+    if (String(priceMax).trim() !== "" && Number.isFinite(maxN)) params.set("priceMax", String(maxN));
+
+    return authFetch(`/api/admin/products?${params}`)
       .then((r) => {
         if (!r.ok) throw new Error(String(r.status));
         return r.json();
       })
-      .then((data) => setProducts(data.products || []));
-  }, []);
-
-  const loadCategories = useCallback(() => {
-    return apiFetch("/api/categories")
-      .then((r) => r.json())
-      .then((data) => setCategories(data.categories || []));
-  }, []);
-
-  const loadBrands = useCallback(() => {
-    return apiFetch("/api/brands")
-      .then((r) => r.json())
-      .then((data) => setBrands(data.brands || []));
-  }, []);
+      .then((data) => {
+        const rows = data.products || [];
+        const tot = Number(data.total) || 0;
+        const maxPage = Math.max(1, Math.ceil(tot / PAGE_SIZE));
+        setProducts(rows);
+        setTotal(tot);
+        setPage((p) => Math.min(p, maxPage));
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setProductsLoading(false));
+  }, [
+    page,
+    q,
+    categoryId,
+    brandId,
+    activeFilter,
+    stockFilter,
+    sort,
+    priceMin,
+    priceMax,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    Promise.all([loadProducts(), loadCategories(), loadBrands()])
+    setMetaLoading(true);
+    Promise.all([apiFetch("/api/categories"), apiFetch("/api/brands")])
+      .then(async ([cr, br]) => {
+        const [cjson, bjson] = await Promise.all([cr.json(), br.json()]);
+        if (!cancelled) {
+          setCategories(cjson.categories || []);
+          setBrands(bjson.brands || []);
+        }
+      })
       .catch((e) => {
         if (!cancelled) setError(e.message);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setMetaLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [loadProducts, loadCategories, loadBrands]);
+  }, []);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -166,6 +266,8 @@ export default function AdminProducts() {
   function openCreate() {
     setEditingId(null);
     setDetailLoading(false);
+    setMainImageUploading(false);
+    setVariantImageUploading(null);
     setForm(emptyForm(categories));
     setModalOpen(true);
   }
@@ -174,6 +276,44 @@ export default function AdminProducts() {
     setModalOpen(false);
     setEditingId(null);
     setDetailLoading(false);
+    setMainImageUploading(false);
+    setVariantImageUploading(null);
+  }
+
+  async function onMainImageFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    setMainImageUploading(true);
+    try {
+      const url = await uploadCatalogCoverImage(file);
+      setForm((f) => ({ ...f, image_url: url }));
+    } catch (err) {
+      setError(err?.message || "upload");
+    } finally {
+      setMainImageUploading(false);
+    }
+  }
+
+  async function onVariantImageFile(idx, e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    setVariantImageUploading(idx);
+    try {
+      const url = await uploadCatalogCoverImage(file);
+      setForm((f) => {
+        const next = [...f.color_variants];
+        next[idx] = { ...next[idx], image_url: url };
+        return { ...f, color_variants: next };
+      });
+    } catch (err) {
+      setError(err?.message || "upload");
+    } finally {
+      setVariantImageUploading(null);
+    }
   }
 
   async function submit(e) {
@@ -251,36 +391,71 @@ export default function AdminProducts() {
       setError(data.error || "delete");
       return;
     }
+    if (Number(editingId) === Number(id)) closeModal();
     loadProducts();
   }
 
   function startEditFromRow(p) {
     setDetailLoading(true);
+    setMainImageUploading(false);
+    setVariantImageUploading(null);
     setEditingId(p.id);
     setForm(emptyForm(categories));
     setModalOpen(true);
   }
 
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  function applyFilters() {
+    setQ(qDraft);
+    setPriceMin(priceMinDraft);
+    setPriceMax(priceMaxDraft);
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setQDraft("");
+    setQ("");
+    setCategoryId("");
+    setBrandId("all");
+    setActiveFilter("all");
+    setStockFilter("all");
+    setSort("id_desc");
+    setPriceMin("");
+    setPriceMax("");
+    setPriceMinDraft("");
+    setPriceMaxDraft("");
+    setPage(1);
+  }
+
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold text-white">
             {t("admin.nav.products")}
           </h1>
-          <p className="mt-2 text-slate-400">{t("admin.productsCrudHint")}</p>
+          <p className="mt-2 max-w-3xl text-slate-400">{t("admin.productsCrudHint")}</p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          disabled={!categories.length}
-          title={
-            !categories.length ? t("auth.errors.no_categories") : undefined
-          }
-          className="rounded-full bg-brand-500 px-6 py-2 font-semibold text-white hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          {t("admin.crud.newProduct")}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={openCreate}
+            disabled={metaLoading || !categories.length}
+            title={
+              !categories.length ? t("auth.errors.no_categories") : undefined
+            }
+            className="rounded-full bg-brand-500 px-6 py-2 font-semibold text-white hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {t("admin.crud.newProduct")}
+          </button>
+          <Link
+            to="/admin"
+            className="rounded-full border border-white/15 px-4 py-2 text-sm text-slate-300 hover:bg-white/5"
+          >
+            ← {t("admin.nav.dashboard")}
+          </Link>
+        </div>
       </div>
 
       {error && (
@@ -289,10 +464,159 @@ export default function AdminProducts() {
         </p>
       )}
 
-      {loading && <p className="mt-8 text-slate-500">{t("shop.loading")}</p>}
+      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <label className="flex min-w-0 flex-col gap-1 xl:col-span-2">
+          <span className="text-xs text-slate-500">{t("admin.productsFilters.search")}</span>
+          <input
+            value={qDraft}
+            onChange={(e) => setQDraft(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && applyFilters()}
+            className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-brand-500/40"
+            placeholder={t("admin.productsFilters.searchPh")}
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-slate-500">{t("admin.productsFilters.category")}</span>
+          <PortalSelect
+            value={categoryId}
+            onChange={(v) => {
+              setCategoryId(String(v));
+              setPage(1);
+            }}
+            disabled={metaLoading}
+            options={[
+              { value: "", label: t("admin.productsFilters.categoryAll") },
+              ...categories.map((c) => ({
+                value: String(c.id),
+                label: i18n.language?.startsWith("bn") ? c.name_bn : c.name_en,
+              })),
+            ]}
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-slate-500">{t("admin.productsFilters.brand")}</span>
+          <PortalSelect
+            value={brandId}
+            onChange={(v) => {
+              setBrandId(String(v));
+              setPage(1);
+            }}
+            disabled={metaLoading}
+            options={[
+              { value: "all", label: t("admin.productsFilters.brandAll") },
+              { value: "none", label: t("admin.productsFilters.brandNone") },
+              ...brands.map((b) => ({
+                value: String(b.id),
+                label: i18n.language?.startsWith("bn") ? b.name_bn : b.name_en,
+              })),
+            ]}
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-slate-500">{t("admin.productsFilters.active")}</span>
+          <PortalSelect
+            value={activeFilter}
+            onChange={(v) => {
+              setActiveFilter(String(v));
+              setPage(1);
+            }}
+            options={[
+              { value: "all", label: t("admin.productsFilters.activeAll") },
+              { value: "active", label: t("admin.productsFilters.activeLive") },
+              { value: "inactive", label: t("admin.productsFilters.activeHidden") },
+            ]}
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-slate-500">{t("admin.productsFilters.stock")}</span>
+          <PortalSelect
+            value={stockFilter}
+            onChange={(v) => {
+              setStockFilter(String(v));
+              setPage(1);
+            }}
+            options={[
+              { value: "all", label: t("admin.productsFilters.stockAll") },
+              { value: "out", label: t("admin.productsFilters.stockOut") },
+              { value: "low", label: t("admin.productsFilters.stockLow") },
+              { value: "ok", label: t("admin.productsFilters.stockOk") },
+            ]}
+          />
+        </label>
+      </div>
 
-      {!loading && (
-        <div className="mt-8 overflow-x-auto rounded-xl border border-white/10">
+      <div className="mt-3 grid gap-3 lg:grid-cols-12 lg:items-end">
+        <label className="flex flex-col gap-1 lg:col-span-2">
+          <span className="text-xs text-slate-500">{t("admin.productsFilters.priceMin")}</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={priceMinDraft}
+            onChange={(e) => setPriceMinDraft(e.target.value)}
+            className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-brand-500/40"
+            placeholder="0"
+          />
+        </label>
+        <label className="flex flex-col gap-1 lg:col-span-2">
+          <span className="text-xs text-slate-500">{t("admin.productsFilters.priceMax")}</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={priceMaxDraft}
+            onChange={(e) => setPriceMaxDraft(e.target.value)}
+            className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-brand-500/40"
+            placeholder="—"
+          />
+        </label>
+        <label className="flex flex-col gap-1 lg:col-span-4">
+          <span className="text-xs text-slate-500">{t("admin.productsFilters.sort")}</span>
+          <PortalSelect
+            value={sort}
+            onChange={(v) => {
+              setSort(String(v));
+              setPage(1);
+            }}
+            options={[
+              { value: "id_desc", label: t("admin.productsFilters.sortIdDesc") },
+              { value: "id_asc", label: t("admin.productsFilters.sortIdAsc") },
+              { value: "created_desc", label: t("admin.productsFilters.sortCreatedDesc") },
+              { value: "created_asc", label: t("admin.productsFilters.sortCreatedAsc") },
+              { value: "name_en_asc", label: t("admin.productsFilters.sortNameAsc") },
+              { value: "name_en_desc", label: t("admin.productsFilters.sortNameDesc") },
+              { value: "price_desc", label: t("admin.productsFilters.sortPriceDesc") },
+              { value: "price_asc", label: t("admin.productsFilters.sortPriceAsc") },
+              { value: "stock_desc", label: t("admin.productsFilters.sortStockDesc") },
+              { value: "stock_asc", label: t("admin.productsFilters.sortStockAsc") },
+            ]}
+          />
+        </label>
+        <div className="flex flex-wrap gap-2 lg:col-span-4 lg:justify-end">
+          <button
+            type="button"
+            onClick={applyFilters}
+            className="rounded-xl border border-brand-500/30 bg-brand-600/30 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600/45"
+          >
+            {t("admin.productsFilters.apply")}
+          </button>
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/5"
+          >
+            {t("admin.productsFilters.clear")}
+          </button>
+        </div>
+      </div>
+
+      {!productsLoading && !error && (
+        <p className="mt-4 text-sm text-slate-500">
+          {t("admin.productsFilters.results", { count: total, page, pages: totalPages })}
+        </p>
+      )}
+
+      <div className="mt-6 overflow-x-auto rounded-xl border border-white/10">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-white/10 bg-white/5 text-slate-400">
               <tr>
@@ -307,50 +631,106 @@ export default function AdminProducts() {
               </tr>
             </thead>
             <tbody>
-              {products.map((p) => (
-                <tr key={p.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                  <td className="px-4 py-3 text-slate-500">{p.id}</td>
-                  <td className="px-4 py-3 font-medium text-white">
-                    {productName(p, i18n.language)}
-                  </td>
-                  <td className="px-4 py-3 text-slate-400">
-                    {i18n.language?.startsWith("bn") ? p.category_name_bn : p.category_name_en}
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">
-                    {p.brand_id
-                      ? i18n.language?.startsWith("bn")
-                        ? p.brand_name_bn
-                        : p.brand_name_en
-                      : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-brand-200">
-                    {formatPrice(p.price, i18n.language)}
-                  </td>
-                  <td className="px-4 py-3">{p.stock}</td>
-                  <td className="px-4 py-3">{p.is_active ? "✓" : "—"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <button
-                      type="button"
-                      onClick={() => startEditFromRow(p)}
-                      className="mr-2 text-brand-400 hover:underline"
-                    >
-                      {t("admin.crud.edit")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => remove(p.id)}
-                      className="text-red-400/90 hover:underline"
-                    >
-                      {t("admin.crud.delete")}
-                    </button>
+              {productsLoading ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-10 text-center text-slate-500">
+                    {t("shop.loading")}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                products.map((p) => (
+                  <tr key={p.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                    <td className="px-4 py-3 text-slate-500">{p.id}</td>
+                    <td className="max-w-[220px] px-4 py-3 font-medium text-white">
+                      <span className="line-clamp-2">{productName(p, i18n.language)}</span>
+                      <span className="mt-0.5 block truncate font-mono text-[11px] text-slate-500">{p.slug}</span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-400">
+                      {i18n.language?.startsWith("bn") ? p.category_name_bn : p.category_name_en}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">
+                      {p.brand_id
+                        ? i18n.language?.startsWith("bn")
+                          ? p.brand_name_bn
+                          : p.brand_name_en
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-brand-200">
+                      {formatPrice(p.price, i18n.language)}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums text-slate-200">{p.stock}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          p.is_active ? "bg-emerald-500/15 text-emerald-200" : "bg-slate-600/30 text-slate-400"
+                        }`}
+                      >
+                        {p.is_active ? t("admin.inventory.activeLive") : t("admin.inventory.activeHidden")}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <div className="flex items-center gap-0.5">
+                        <Link
+                          to={`/shop/${encodeURIComponent(p.slug)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex rounded-lg p-2 text-amber-400 transition hover:bg-amber-500/15"
+                          title={t("admin.productsAdmin.viewShop")}
+                          aria-label={t("admin.productsAdmin.viewShop")}
+                        >
+                          <IconEye />
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => startEditFromRow(p)}
+                          className="inline-flex rounded-lg p-2 text-emerald-400 transition hover:bg-emerald-500/15"
+                          title={t("admin.crud.edit")}
+                          aria-label={t("admin.crud.edit")}
+                        >
+                          <IconPencil />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => remove(p.id)}
+                          className="inline-flex rounded-lg p-2 text-rose-400 transition hover:bg-rose-500/15"
+                          title={t("admin.crud.delete")}
+                          aria-label={t("admin.crud.delete")}
+                        >
+                          <IconTrash />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-          {products.length === 0 && !error && (
-            <p className="px-4 py-8 text-center text-slate-500">{t("shop.empty")}</p>
+          {!productsLoading && products.length === 0 && !error && (
+            <p className="px-4 py-8 text-center text-slate-500">{t("admin.productsFilters.empty")}</p>
           )}
+        </div>
+
+      {!productsLoading && totalPages > 1 && (
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((x) => Math.max(1, x - 1))}
+            className="rounded-lg border border-white/10 px-4 py-2 text-sm disabled:opacity-40"
+          >
+            {t("admin.ordersPrev")}
+          </button>
+          <span className="text-sm text-slate-400">
+            {page} / {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => setPage((x) => Math.min(totalPages, x + 1))}
+            className="rounded-lg border border-white/10 px-4 py-2 text-sm disabled:opacity-40"
+          >
+            {t("admin.ordersNext")}
+          </button>
         </div>
       )}
 
@@ -593,6 +973,7 @@ export default function AdminProducts() {
                 <div className="sm:col-span-2 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-sm font-medium text-white">{t("admin.crud.colorVariants")}</p>
                   <p className="mt-1 text-xs text-slate-500">{t("admin.crud.colorVariantsHint")}</p>
+                  <p className="mt-1 text-[11px] text-slate-400">{t("admin.crud.imageUploadNote")}</p>
                   <div className="mt-3 space-y-3">
                     {form.color_variants.map((row, idx) => (
                       <div
@@ -623,18 +1004,40 @@ export default function AdminProducts() {
                             })
                           }
                         />
-                        <input
-                          className="sm:col-span-2 rounded border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white"
-                          placeholder={t("admin.crud.variantImageUrl")}
-                          value={row.image_url}
-                          onChange={(e) =>
-                            setForm((f) => {
-                              const next = [...f.color_variants];
-                              next[idx] = { ...next[idx], image_url: e.target.value };
-                              return { ...f, color_variants: next };
-                            })
-                          }
-                        />
+                        <div className="sm:col-span-2 space-y-2">
+                          <input
+                            className="w-full rounded border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white"
+                            placeholder={t("admin.crud.variantImageUrl")}
+                            value={row.image_url}
+                            onChange={(e) =>
+                              setForm((f) => {
+                                const next = [...f.color_variants];
+                                next[idx] = { ...next[idx], image_url: e.target.value };
+                                return { ...f, color_variants: next };
+                              })
+                            }
+                          />
+                          <label className="inline-flex cursor-pointer rounded-lg border border-white/15 bg-black/30 px-3 py-1.5 text-xs text-slate-200 hover:bg-white/10">
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,image/gif"
+                              className="sr-only"
+                              disabled={saving || variantImageUploading === idx}
+                              onChange={(e) => onVariantImageFile(idx, e)}
+                            />
+                            {variantImageUploading === idx ? t("shop.loading") : t("admin.crud.catalogCoverUpload")}
+                          </label>
+                          {row.image_url?.trim() ? (
+                            <div className="overflow-hidden rounded-lg border border-white/10 bg-black/30">
+                              <img
+                                src={resolvePublicAssetUrl(row.image_url.trim())}
+                                alt=""
+                                className="max-h-28 w-full object-cover"
+                                loading="lazy"
+                              />
+                            </div>
+                          ) : null}
+                        </div>
                         <div className="flex items-center gap-2 sm:col-span-2">
                           <label className="text-xs text-slate-500">{t("admin.table.stock")}</label>
                           <input
@@ -728,14 +1131,39 @@ export default function AdminProducts() {
                     }
                   />
                 </div>
-                <div>
+                <div className="sm:col-span-2">
                   <label className="text-xs text-slate-500">{t("admin.crud.imageUrl")}</label>
+                  <p className="mt-1 text-[11px] leading-relaxed text-slate-500">{t("admin.crud.productImageHint")}</p>
                   <input
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white"
+                    className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white"
                     value={form.image_url}
                     onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
                     placeholder="https://"
                   />
+                  <p className="mt-1 text-[11px] text-slate-400">{t("admin.crud.imageUploadNote")}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <label className="cursor-pointer rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-xs text-slate-200 hover:bg-white/10">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="sr-only"
+                        disabled={mainImageUploading || saving || detailLoading}
+                        onChange={onMainImageFile}
+                      />
+                      {mainImageUploading ? t("shop.loading") : t("admin.crud.catalogCoverUpload")}
+                    </label>
+                  </div>
+                  {form.image_url?.trim() ? (
+                    <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-black/30">
+                      <img
+                        src={resolvePublicAssetUrl(form.image_url.trim())}
+                        alt=""
+                        className="max-h-52 w-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-2 sm:col-span-2">
                   <input

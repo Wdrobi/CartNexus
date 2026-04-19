@@ -55,6 +55,9 @@ export default function AdminLayout() {
               <NavLink to="/admin/brands" className={linkClass}>
                 {t("admin.nav.brands")}
               </NavLink>
+              <NavLink to="/admin/blog" className={linkClass}>
+                {t("admin.nav.blog")}
+              </NavLink>
               <NavLink to="/admin/users" className={linkClass}>
                 {t("admin.nav.users")}
               </NavLink>

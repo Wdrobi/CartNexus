@@ -1,97 +1,232 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { authFetch } from "../../api/authFetch.js";
+import { resolvePublicAssetUrl } from "../../api/apiBase.js";
+import { uploadCatalogCoverImage } from "../../api/catalogCoverUpload.js";
 import { translateAdminError } from "../../utils/adminApiError.js";
 import { slugify } from "../../utils/slug.js";
+import { PortalSelect } from "../../components/admin/PortalSelect.jsx";
 
 const emptyForm = {
   name_bn: "",
   name_en: "",
   slug: "",
-  sort_order: 0,
+  cover_image: "",
 };
+
+const PAGE_SIZE = 25;
+
+function formatBrandDate(iso, lang) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString(lang?.startsWith("bn") ? "bn-BD" : "en-BD", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+function IconEye() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function IconPencil() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <polyline points="3 6 5 6 21 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export default function AdminBrands() {
   const { t, i18n } = useTranslation();
   const [list, setList] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [q, setQ] = useState("");
+  const [qDraft, setQDraft] = useState("");
+  const [sort, setSort] = useState("sort_asc");
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    authFetch("/api/admin/brands")
+  const load = useCallback((options = {}) => {
+    const silent = !!options.silent;
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("pageSize", String(PAGE_SIZE));
+    params.set("sort", sort);
+    if (q.trim()) params.set("q", q.trim());
+
+    return authFetch(`/api/admin/brands?${params}`)
       .then((r) => {
         if (!r.ok) throw new Error(String(r.status));
         return r.json();
       })
-      .then((data) => setList(data.brands || []))
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
+      .then((data) => {
+        const rows = data.brands || [];
+        let tot = Number(data.total);
+        if (!Number.isFinite(tot)) tot = rows.length;
+        const maxPage = Math.max(1, Math.ceil(tot / PAGE_SIZE));
+        setList(rows);
+        setTotal(tot);
+        setPage((p) => Math.min(p, maxPage));
+      })
+      .catch((e) => {
+        if (!silent) setError(e.message);
+      })
+      .finally(() => {
+        if (!silent) setLoading(false);
+      });
+  }, [page, q, sort]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  function startEdit(row) {
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      load({ silent: true });
+    }, 45_000);
+    return () => window.clearInterval(intervalId);
+  }, [load]);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") load({ silent: true });
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [load]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  function applySearch() {
+    setQ(qDraft);
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setQDraft("");
+    setQ("");
+    setSort("sort_asc");
+    setPage(1);
+  }
+
+  function openAdd() {
+    setError(null);
+    setEditingId(null);
+    setForm({ ...emptyForm });
+    setModalOpen(true);
+  }
+
+  function openEdit(row) {
+    setError(null);
     setEditingId(row.id);
     setForm({
       name_bn: row.name_bn,
       name_en: row.name_en,
       slug: row.slug,
-      sort_order: row.sort_order,
+      cover_image: row.cover_image != null ? String(row.cover_image) : "",
     });
+    setModalOpen(true);
   }
 
-  function cancelEdit() {
+  function closeModal() {
+    setModalOpen(false);
     setEditingId(null);
     setForm(emptyForm);
   }
 
-  async function submitCreate(e) {
+  async function submitForm(e) {
     e.preventDefault();
-    const body = {
-      name_bn: form.name_bn,
-      name_en: form.name_en,
-      slug: form.slug || slugify(form.name_en),
-      sort_order: Number(form.sort_order) || 0,
-    };
-    const r = await authFetch("/api/admin/brands", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      setError(data.error || "save");
-      return;
+    setSaving(true);
+    setError(null);
+    try {
+      if (editingId) {
+        const r = await authFetch(`/api/admin/brands/${editingId}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            name_bn: form.name_bn,
+            name_en: form.name_en,
+            slug: form.slug,
+            cover_image: form.cover_image.trim(),
+          }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          setError(data.error || "save");
+          return;
+        }
+      } else {
+        const body = {
+          name_bn: form.name_bn,
+          name_en: form.name_en,
+          slug: form.slug || slugify(form.name_en),
+          cover_image: form.cover_image.trim(),
+        };
+        const r = await authFetch("/api/admin/brands", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          setError(data.error || "save");
+          return;
+        }
+      }
+      closeModal();
+      load();
+    } finally {
+      setSaving(false);
     }
-    setForm(emptyForm);
-    load();
-  }
-
-  async function submitUpdate(e) {
-    e.preventDefault();
-    if (!editingId) return;
-    const r = await authFetch(`/api/admin/brands/${editingId}`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        name_bn: form.name_bn,
-        name_en: form.name_en,
-        slug: form.slug,
-        sort_order: Number(form.sort_order) || 0,
-      }),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      setError(data.error || "save");
-      return;
-    }
-    cancelEdit();
-    load();
   }
 
   async function remove(id) {
@@ -102,15 +237,49 @@ export default function AdminBrands() {
       setError(data.error || "delete");
       return;
     }
+    if (Number(editingId) === Number(id)) closeModal();
     load();
+  }
+
+  async function onCoverFileSelected(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    setCoverUploading(true);
+    try {
+      const url = await uploadCatalogCoverImage(file);
+      setForm((f) => ({ ...f, cover_image: url }));
+    } catch (err) {
+      setError(err?.message || "upload");
+    } finally {
+      setCoverUploading(false);
+    }
   }
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold text-white">
-        {t("admin.nav.brands")}
-      </h1>
-      <p className="mt-2 text-slate-400">{t("admin.brandsHint")}</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-white">{t("admin.nav.brands")}</h1>
+          <p className="mt-2 max-w-3xl text-slate-400">{t("admin.brandsHint")}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={openAdd}
+            className="rounded-full bg-brand-500 px-6 py-2 font-semibold text-white hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {t("admin.crud.addBrand")}
+          </button>
+          <Link
+            to="/admin"
+            className="rounded-full border border-white/15 px-4 py-2 text-sm text-slate-300 hover:bg-white/5"
+          >
+            ← {t("admin.nav.dashboard")}
+          </Link>
+        </div>
+      </div>
 
       {error && (
         <p className="mt-4 text-amber-200">
@@ -118,113 +287,287 @@ export default function AdminBrands() {
         </p>
       )}
 
-      <motion.form
-        onSubmit={editingId ? submitUpdate : submitCreate}
-        className="mt-8 grid gap-4 rounded-xl border border-white/10 bg-ink-900/60 p-6 sm:grid-cols-2 lg:grid-cols-3"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div>
-          <label className="text-xs text-slate-500">{t("admin.crud.nameBn")}</label>
+      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="flex min-w-0 flex-col gap-1 sm:col-span-2">
+          <span className="text-xs text-slate-500">{t("admin.brandsFilters.search")}</span>
           <input
-            className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white"
-            value={form.name_bn}
-            onChange={(e) => setForm((f) => ({ ...f, name_bn: e.target.value }))}
-            required
+            value={qDraft}
+            onChange={(e) => setQDraft(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && applySearch()}
+            className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-brand-500/40"
+            placeholder={t("admin.brandsFilters.searchPh")}
           />
-        </div>
-        <div>
-          <label className="text-xs text-slate-500">{t("admin.crud.nameEn")}</label>
-          <input
-            className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white"
-            value={form.name_en}
-            onChange={(e) => setForm((f) => ({ ...f, name_en: e.target.value }))}
-            required
+        </label>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-end gap-3 lg:justify-between">
+        <label className="flex min-w-[220px] flex-1 flex-col gap-1 lg:max-w-md">
+          <span className="text-xs text-slate-500">{t("admin.brandsFilters.sort")}</span>
+          <PortalSelect
+            value={sort}
+            onChange={(v) => {
+              setSort(String(v));
+              setPage(1);
+            }}
+            options={[
+              { value: "sort_asc", label: t("admin.brandsFilters.sortOrderAsc") },
+              { value: "sort_desc", label: t("admin.brandsFilters.sortOrderDesc") },
+              { value: "id_desc", label: t("admin.brandsFilters.sortIdDesc") },
+              { value: "id_asc", label: t("admin.brandsFilters.sortIdAsc") },
+              { value: "name_en_asc", label: t("admin.brandsFilters.sortNameAsc") },
+              { value: "name_en_desc", label: t("admin.brandsFilters.sortNameDesc") },
+              { value: "slug_asc", label: t("admin.brandsFilters.sortSlugAsc") },
+              { value: "created_desc", label: t("admin.brandsFilters.sortCreatedDesc") },
+              { value: "created_asc", label: t("admin.brandsFilters.sortCreatedAsc") },
+            ]}
           />
-        </div>
-        <div>
-          <label className="text-xs text-slate-500">{t("admin.crud.slug")}</label>
-          <input
-            className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white"
-            value={form.slug}
-            onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
-            placeholder="nike"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-slate-500">{t("admin.crud.sortOrder")}</label>
-          <input
-            type="number"
-            className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white"
-            value={form.sort_order}
-            onChange={(e) => setForm((f) => ({ ...f, sort_order: e.target.value }))}
-          />
-        </div>
-        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-3">
+        </label>
+        <div className="flex flex-wrap gap-2">
           <button
-            type="submit"
-            className="rounded-full bg-brand-500 px-6 py-2 font-semibold text-white hover:bg-brand-400"
+            type="button"
+            onClick={applySearch}
+            className="rounded-xl border border-brand-500/30 bg-brand-600/30 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600/45"
           >
-            {editingId ? t("admin.crud.save") : t("admin.crud.add")}
+            {t("admin.brandsFilters.apply")}
           </button>
-          {editingId && (
-            <button
-              type="button"
-              onClick={cancelEdit}
-              className="rounded-full border border-white/15 px-6 py-2 text-slate-300 hover:bg-white/5"
-            >
-              {t("admin.crud.cancel")}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/5"
+          >
+            {t("admin.brandsFilters.clear")}
+          </button>
         </div>
-      </motion.form>
+      </div>
 
-      {loading && <p className="mt-8 text-slate-500">{t("shop.loading")}</p>}
+      {!loading && !error && (
+        <p className="mt-4 text-sm text-slate-500">
+          {t("admin.brandsFilters.results", { count: total, page, pages: totalPages })}
+        </p>
+      )}
 
-      {!loading && (
-        <div className="mt-8 overflow-x-auto rounded-xl border border-white/10">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-white/10 bg-white/5 text-slate-400">
+      <div className="mt-6 overflow-x-auto rounded-xl border border-white/10">
+        <table className="min-w-full text-left text-sm">
+          <thead className="border-b border-white/10 bg-white/5 text-slate-400">
+            <tr>
+              <th className="px-4 py-3">ID</th>
+              <th className="px-4 py-3">{t("admin.table.name")}</th>
+              <th className="px-4 py-3">{t("admin.crud.slug")}</th>
+              <th className="whitespace-nowrap px-4 py-3">{t("admin.brandsColumns.startDate")}</th>
+              <th className="px-4 py-3">{t("admin.crud.actions")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
               <tr>
-                <th className="px-4 py-3">ID</th>
-                <th className="px-4 py-3">{t("admin.table.name")}</th>
-                <th className="px-4 py-3">{t("admin.crud.slug")}</th>
-                <th className="px-4 py-3">{t("admin.crud.sortOrder")}</th>
-                <th className="px-4 py-3">{t("admin.crud.actions")}</th>
+                <td colSpan={5} className="px-4 py-10 text-center text-slate-500">
+                  {t("shop.loading")}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {list.map((row) => (
-                <tr key={row.id} className="border-b border-white/5">
+            ) : (
+              list.map((row) => (
+                <tr key={row.id} className="border-b border-white/5 hover:bg-white/[0.02]">
                   <td className="px-4 py-3 text-slate-500">{row.id}</td>
-                  <td className="px-4 py-3 text-white">
-                    {i18n.language?.startsWith("bn") ? row.name_bn : row.name_en}
+                  <td className="max-w-[200px] px-4 py-3 text-white">
+                    <span className="font-medium">{i18n.language?.startsWith("bn") ? row.name_bn : row.name_en}</span>
+                    <span className="mt-0.5 block text-[11px] text-slate-500">
+                      {i18n.language?.startsWith("bn") ? row.name_en : row.name_bn}
+                    </span>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-slate-400">{row.slug}</td>
-                  <td className="px-4 py-3">{row.sort_order}</td>
-                  <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => startEdit(row)}
-                      className="mr-2 text-brand-400 hover:underline"
-                    >
-                      {t("admin.crud.edit")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => remove(row.id)}
-                      className="text-red-400/90 hover:underline"
-                    >
-                      {t("admin.crud.delete")}
-                    </button>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-400">
+                    {formatBrandDate(row.created_at, i18n.language)}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <div className="flex items-center gap-0.5">
+                      <Link
+                        to={`/brands/${encodeURIComponent(row.slug)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex rounded-lg p-2 text-amber-400 transition hover:bg-amber-500/15"
+                        title={t("admin.brandsAdmin.viewShop")}
+                        aria-label={t("admin.brandsAdmin.viewShop")}
+                      >
+                        <IconEye />
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => openEdit(row)}
+                        className="inline-flex rounded-lg p-2 text-emerald-400 transition hover:bg-emerald-500/15"
+                        title={t("admin.crud.edit")}
+                        aria-label={t("admin.crud.edit")}
+                      >
+                        <IconPencil />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => remove(row.id)}
+                        className="inline-flex rounded-lg p-2 text-rose-400 transition hover:bg-rose-500/15"
+                        title={t("admin.crud.delete")}
+                        aria-label={t("admin.crud.delete")}
+                      >
+                        <IconTrash />
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {list.length === 0 && !error && (
-            <p className="px-4 py-8 text-center text-slate-500">{t("shop.empty")}</p>
-          )}
+              ))
+            )}
+          </tbody>
+        </table>
+        {!loading && list.length === 0 && !error && (
+          <p className="px-4 py-8 text-center text-slate-500">{t("admin.brandsFilters.empty")}</p>
+        )}
+      </div>
+
+      {!loading && totalPages > 1 && (
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="rounded-lg border border-white/10 px-4 py-2 text-sm disabled:opacity-40"
+          >
+            {t("admin.ordersPrev")}
+          </button>
+          <span className="text-sm text-slate-400">
+            {page} / {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="rounded-lg border border-white/10 px-4 py-2 text-sm disabled:opacity-40"
+          >
+            {t("admin.ordersNext")}
+          </button>
+        </div>
+      )}
+
+      {modalOpen && (
+        <div
+          className="fixed inset-0 z-[400] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={closeModal}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl border border-white/10 bg-slate-950 p-6 shadow-2xl"
+            role="dialog"
+            aria-labelledby="admin-brand-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="admin-brand-modal-title" className="font-display text-lg font-semibold text-white">
+              {editingId ? t("admin.crud.editBrand") : t("admin.crud.addBrand")}
+            </h2>
+
+            <form onSubmit={submitForm} className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-1">
+                <label className="text-xs text-slate-500">{t("admin.crud.nameBn")}</label>
+                <input
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white outline-none focus:border-brand-500/40"
+                  value={form.name_bn}
+                  onChange={(e) => setForm((f) => ({ ...f, name_bn: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="sm:col-span-1">
+                <label className="text-xs text-slate-500">{t("admin.crud.nameEn")}</label>
+                <input
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white outline-none focus:border-brand-500/40"
+                  value={form.name_en}
+                  onChange={(e) => setForm((f) => ({ ...f, name_en: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-xs text-slate-500">{t("admin.crud.slug")}</label>
+                <input
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white outline-none focus:border-brand-500/40"
+                  value={form.slug}
+                  onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
+                  placeholder="nike"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="text-xs text-slate-500">{t("admin.crud.catalogCoverUrl")}</label>
+                <input
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white outline-none focus:border-brand-500/40"
+                  value={form.cover_image}
+                  onChange={(e) => setForm((f) => ({ ...f, cover_image: e.target.value }))}
+                  placeholder="https://…"
+                  autoComplete="off"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">{t("admin.crud.catalogCoverHint")}</p>
+                <p className="mt-1 text-[11px] text-slate-400">{t("admin.crud.imageUploadNote")}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <label className="cursor-pointer rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-xs text-slate-200 hover:bg-white/10">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="sr-only"
+                      disabled={coverUploading || saving}
+                      onChange={onCoverFileSelected}
+                    />
+                    {coverUploading ? t("shop.loading") : t("admin.crud.catalogCoverUpload")}
+                  </label>
+                  {form.cover_image.trim() ? (
+                    <button
+                      type="button"
+                      className="text-xs text-slate-400 underline hover:text-white"
+                      onClick={() => setForm((f) => ({ ...f, cover_image: "" }))}
+                    >
+                      {t("admin.crud.catalogCoverClear")}
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="mt-5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-200/90">
+                    {t("admin.crud.catalogCoverPreview")}
+                  </p>
+                  {form.cover_image.trim() ? (
+                    <div className="mt-2 overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-br from-brand-900/30 via-slate-900/80 to-slate-950 p-2 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.65)] ring-1 ring-brand-500/20">
+                      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[0.65rem] bg-black/50 shadow-inner">
+                        <img
+                          src={resolvePublicAssetUrl(form.cover_image.trim())}
+                          alt=""
+                          className="h-full w-full object-cover transition duration-300 hover:scale-[1.02]"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        <div
+                          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10"
+                          aria-hidden
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-2 flex min-h-[10rem] items-center justify-center rounded-2xl border border-dashed border-white/20 bg-[radial-gradient(ellipse_at_top,_rgba(244,63,94,0.08),_transparent_55%),radial-gradient(ellipse_at_bottom,_rgba(139,92,246,0.06),_transparent_50%)] px-4 py-8 text-center">
+                      <p className="max-w-sm text-sm leading-relaxed text-slate-500">{t("admin.crud.catalogCoverEmpty")}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 sm:col-span-2">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded-full bg-brand-500 px-6 py-2 font-semibold text-white hover:bg-brand-400 disabled:opacity-50"
+                >
+                  {saving ? t("shop.loading") : editingId ? t("admin.crud.save") : t("admin.crud.addBrand")}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="rounded-full border border-white/15 px-6 py-2 text-slate-300 hover:bg-white/5"
+                >
+                  {t("admin.crud.cancel")}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

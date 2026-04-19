@@ -1,5 +1,7 @@
 CartNexus DB changelog (append newest at bottom)
 ------------------------------------------------
+2026-04-09 — Blog: table `blog_posts` (`db/migration_blog_posts.sql`); public `GET /api/blog`, `GET /api/blog/:slug`; admin `GET/POST/PATCH/DELETE /api/admin/blog-posts`. Storefront `/blog` uses API when posts exist, else static `blogPosts.js`.
+2026-04-09 — Categories & brands: optional `cover_image VARCHAR(512)` on `categories` and `brands` (`db/migration_category_brand_cover.sql`). Home tiles prefer this URL; else first active product image (existing behavior). Admin: URL + `POST /api/admin/catalog-cover` multipart upload → `/uploads/catalog/*`.
 2026-04-09 — Aligned repo SQL with “profile + addresses” and “brands + brand_id” migrations already applied in MySQL: phpmyadmin-setup.sql now includes user_addresses; migration headers clarified; Cursor rule + this log added for future code↔DB sync.
 2026-04-12 — No schema change: backend npm script test:smoke (scripts/smoke-api.mjs) verifies API + admin JWT paths against running server.
 2026-04-12 — Profile avatars: POST /api/auth/profile/avatar (multipart) stores files under backend/uploads/avatars; avatar_url remains VARCHAR; static /uploads; clear avatar deletes file when path is /uploads/avatars/*.
@@ -14,3 +16,4 @@ CartNexus DB changelog (append newest at bottom)
 2026-04-09 — Realtime: HTTP server + `ws` WebSocket at `/ws/admin?token=<admin JWT>`; `broadcastDashboardRefresh` after successful `POST /api/orders`. Frontend connects for instant dashboard refetch.
 2026-04-09 — `orders.delivery_zone`: `VARCHAR(64)` (was ENUM) via `db/migration_delivery_zone_varchar.sql`; `POST /api/orders` accepts any slug `^[a-z0-9_]{1,64}$` with known-zone fees from `DELIVERY_FEES` and default fee for new keys; admin dashboard zone bars/list/map driven by `salesByZone` (dynamic rows).
 2026-04-09 — Admin inventory: table `inventory_stock_movements` (`db/migration_inventory_management.sql`); `GET/POST /api/admin/inventory` (list SKUs, summary, adjust stock, movement history).
+2026-04-19 — Blog featured slot + navigation: column `blog_posts.is_featured` (`db/migration_blog_featured.sql`; also reflected in `migration_blog_posts.sql` / `schema.sql` for new installs). Public `GET /api/blog` sorts featured first; `GET /api/blog/:slug` adds `navPrevious`/`navNext` (by publish date). Admin blog form checkbox clears other featured rows when set.

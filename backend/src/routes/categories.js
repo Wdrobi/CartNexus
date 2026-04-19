@@ -9,10 +9,13 @@ router.get("/", async (_req, res) => {
       `SELECT c.id, c.name_bn, c.name_en, c.slug, c.sort_order, c.page_layout,
         (SELECT COUNT(*) FROM products p
          WHERE p.category_id = c.id AND p.is_active = 1) AS product_count,
-        (SELECT p.image_url FROM products p
-         WHERE p.category_id = c.id AND p.is_active = 1
-           AND p.image_url IS NOT NULL AND p.image_url != ''
-         ORDER BY p.id ASC LIMIT 1) AS cover_image
+        COALESCE(
+          NULLIF(TRIM(c.cover_image), ''),
+          (SELECT p.image_url FROM products p
+           WHERE p.category_id = c.id AND p.is_active = 1
+             AND p.image_url IS NOT NULL AND TRIM(p.image_url) <> ''
+           ORDER BY p.id ASC LIMIT 1)
+        ) AS cover_image
        FROM categories c
        ORDER BY c.sort_order ASC, c.id ASC`
     );

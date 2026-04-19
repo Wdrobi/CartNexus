@@ -1,10 +1,13 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
 import { BlogIndexSeo } from "../components/blog/BlogSeo.jsx";
+import { apiFetch, resolvePublicAssetUrl } from "../api/apiBase.js";
 import { getAllPostsSorted, pickLocalized } from "../data/blogPosts.js";
+import { previewPlainFromBody } from "../utils/blogBody.js";
 
 function formatBlogDate(iso, locale) {
   try {
@@ -16,20 +19,11 @@ function formatBlogDate(iso, locale) {
   }
 }
 
-function ArticleBodyPreview({ text, maxParas = 2 }) {
-  const parts = String(text || "")
-    .split(/\n\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-  const show = parts.slice(0, maxParas).join("\n\n");
-  const paras = show.split(/\n\n/);
+function ArticleBodyPreview({ text, maxLen = 220 }) {
+  const line = previewPlainFromBody(text, maxLen);
   return (
     <div className="text-sm leading-relaxed text-slate-600 md:text-[15px]">
-      {paras.map((para, i) => (
-        <p key={i} className={i > 0 ? "mt-3" : ""}>
-          {para.length > 220 ? `${para.slice(0, 217)}…` : para}
-        </p>
-      ))}
+      <p className="line-clamp-4">{line}</p>
     </div>
   );
 }
@@ -39,13 +33,41 @@ export default function BlogListPage() {
   const lang = i18n.language;
   const isBn = lang?.startsWith("bn");
   const locale = isBn ? "bn-BD" : "en-GB";
-  const posts = getAllPostsSorted();
-  const [featured, ...rest] = posts;
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    apiFetch("/api/blog")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        const apiPosts = data?.posts || [];
+        setPosts(apiPosts.length > 0 ? apiPosts : getAllPostsSorted());
+      })
+      .catch(() => {
+        if (!cancelled) setPosts(getAllPostsSorted());
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const sortedPosts = [...posts];
+  const featuredIdx = sortedPosts.findIndex((p) => p.featured);
+  const featured = featuredIdx >= 0 ? sortedPosts[featuredIdx] : sortedPosts[0];
+  const rest =
+    featuredIdx >= 0 ? sortedPosts.filter((_, i) => i !== featuredIdx) : sortedPosts.slice(1);
+  const seoPosts = loading ? getAllPostsSorted() : posts.length > 0 ? posts : getAllPostsSorted();
 
   return (
     <div className="min-h-dvh min-w-0 bg-slate-100 text-slate-900">
       <BlogIndexSeo
-        posts={posts}
+        posts={seoPosts}
         title={t("blogPage.metaTitle")}
         description={t("blogPage.metaDescription")}
         lang={lang}
@@ -102,7 +124,10 @@ export default function BlogListPage() {
       </section>
 
       <div className="mx-auto w-full max-w-none px-[20px] py-12 sm:py-16">
-        {featured ? (
+        {loading ? (
+          <p className="text-center text-slate-600">{t("shop.loading")}</p>
+        ) : null}
+        {!loading && featured ? (
           <motion.article
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -113,9 +138,24 @@ export default function BlogListPage() {
             <div className="grid lg:grid-cols-2">
               <Link
                 to={`/blog/${featured.slug}`}
-                className={`relative min-h-[220px] bg-gradient-to-br ${featured.gradient} p-10 text-white lg:min-h-[320px]`}
+                className={`relative min-h-[220px] overflow-hidden bg-gradient-to-br ${featured.gradient} p-10 text-white lg:min-h-[320px]`}
               >
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M0%200h60v60H0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M30%200v60M0%2030h60%22%20stroke%3D%22%23ffffff%22%20stroke-opacity%3D%22.08%22%2F%3E%3C%2Fsvg%3E')] opacity-90" />
+                {featured.imageUrl ? (
+                  <>
+                    <img
+                      src={resolvePublicAssetUrl(featured.imageUrl)}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/25" aria-hidden />
+                    <div
+                      className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${featured.gradient} opacity-45 mix-blend-soft-light`}
+                      aria-hidden
+                    />
+                  </>
+                ) : (
+                  <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M0%200h60v60H0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M30%200v60M0%2030h60%22%20stroke%3D%22%23ffffff%22%20stroke-opacity%3D%22.08%22%2F%3E%3C%2Fsvg%3E')] opacity-90" aria-hidden />
+                )}
                 <span className="relative inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
                   {t("blogPage.featuredBadge")}
                 </span>
@@ -134,7 +174,7 @@ export default function BlogListPage() {
                   {formatBlogDate(featured.datePublished, locale)} · {t("blogPage.readTime", { count: featured.readTimeMin })}
                 </p>
                 <div className="mt-6">
-                  <ArticleBodyPreview text={pickLocalized(featured.body, lang)} maxParas={2} />
+                  <ArticleBodyPreview text={pickLocalized(featured.body, lang)} />
                 </div>
                 <Link
                   to={`/blog/${featured.slug}`}
@@ -150,7 +190,8 @@ export default function BlogListPage() {
 
         <h2 className="mt-16 font-display text-xl font-bold text-ink-950 md:text-2xl">{t("blogPage.allPosts")}</h2>
         <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {rest.map((post, idx) => (
+          {!loading &&
+            rest.map((post, idx) => (
             <motion.li
               key={post.slug}
               initial={{ opacity: 0, y: 16 }}
@@ -162,8 +203,23 @@ export default function BlogListPage() {
                 to={`/blog/${post.slug}`}
                 className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition hover:-translate-y-1 hover:border-brand-200/80 hover:shadow-lg hover:shadow-brand-900/5"
               >
-                <div className={`relative h-36 bg-gradient-to-br ${post.gradient} shrink-0`}>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
+                <div className={`relative h-36 shrink-0 overflow-hidden bg-gradient-to-br ${post.gradient}`}>
+                  {post.imageUrl ? (
+                    <>
+                      <img
+                        src={resolvePublicAssetUrl(post.imageUrl)}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" aria-hidden />
+                      <div
+                        className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${post.gradient} opacity-35 mix-blend-soft-light`}
+                        aria-hidden
+                      />
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" aria-hidden />
+                  )}
                   <span className="absolute left-4 top-4 rounded-full bg-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
                     {pickLocalized(post.category, lang)}
                   </span>
@@ -184,7 +240,7 @@ export default function BlogListPage() {
                 </div>
               </Link>
             </motion.li>
-          ))}
+            ))}
         </ul>
 
         <motion.section

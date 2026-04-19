@@ -17,6 +17,7 @@ import { requireAdmin } from "./middleware/auth.js";
 import avatarUploadRouter from "./routes/avatarUpload.js";
 import homeRouter from "./routes/home.js";
 import ordersRouter from "./routes/orders.js";
+import blogRouter from "./routes/blog.js";
 import { attachAdminWebSocket } from "./realtime/adminWs.js";
 
 dotenv.config();
@@ -63,6 +64,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/auth", userAddressesRouter);
 app.use("/api/contact", contactRouter);
 app.use("/api/orders", ordersRouter);
+app.use("/api/blog", blogRouter);
 app.use("/api/admin", requireAdmin, adminRouter);
 
 app.use((_req, res) => {

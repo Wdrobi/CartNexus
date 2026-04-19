@@ -1,6 +1,12 @@
 import { Router } from "express";
+import bcrypt from "bcrypt";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+import multer from "multer";
 import { pool } from "../../db/pool.js";
 import { slugify } from "../../utils/slug.js";
+import { normalizeCoverImageUrl } from "../../utils/coverImageUrl.js";
 import {
   defaultHomeHero,
   normalizeHexColor,
@@ -25,8 +31,33 @@ import {
   adjustInventoryStock,
 } from "../../utils/adminInventory.js";
 import { broadcastDashboardRefresh } from "../../realtime/adminWs.js";
+import blogPostsAdminRouter from "./blogPostsAdmin.js";
 
 const router = Router();
+
+const __adminFilename = fileURLToPath(import.meta.url);
+const __adminDirname = path.dirname(__adminFilename);
+const catalogCoverUploadDir = path.join(__adminDirname, "..", "..", "..", "uploads", "catalog");
+fs.mkdirSync(catalogCoverUploadDir, { recursive: true });
+
+const catalogCoverStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, catalogCoverUploadDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowed = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+    const safe = allowed.includes(ext) ? ext : ".jpg";
+    cb(null, `catalog-${Date.now()}-${Math.random().toString(36).slice(2, 10)}${safe}`);
+  },
+});
+
+const catalogCoverUpload = multer({
+  storage: catalogCoverStorage,
+  limits: { fileSize: 3 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = /^image\/(jpeg|png|webp|gif)$/i.test(file.mimetype);
+    cb(ok ? null : new Error("INVALID_IMAGE_TYPE"), ok);
+  },
+});
 
 async function fetchAdminProductDetail(id) {
   const [rows] = await pool.query(
@@ -268,21 +299,117 @@ router.post("/inventory/adjust", async (req, res) => {
   }
 });
 
-router.get("/categories", async (_req, res) => {
+router.get("/categories", async (req, res) => {
   try {
+    const qRaw = String(req.query.q ?? "").trim();
+    const layoutFilter = String(req.query.layout ?? "all").toLowerCase();
+    const hasProducts = String(req.query.hasProducts ?? "all").toLowerCase();
+    const stockFilter = String(req.query.stock ?? "all").toLowerCase();
+    const soldFilter = String(req.query.sold ?? "all").toLowerCase();
+    const sort = String(req.query.sort ?? "sort_asc").toLowerCase();
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize ?? "25"), 10) || 25));
+    const offset = (page - 1) * pageSize;
+
+    /** Total on-hand units in category (variants + base-only products). */
+    const sqlStockSum = `(
+      COALESCE((
+        SELECT SUM(v.stock)
+        FROM products p2
+        INNER JOIN product_color_variants v ON v.product_id = p2.id
+        WHERE p2.category_id = c.id
+      ), 0)
+      + COALESCE((
+        SELECT SUM(p3.stock)
+        FROM products p3
+        WHERE p3.category_id = c.id
+          AND NOT EXISTS (SELECT 1 FROM product_color_variants v2 WHERE v2.product_id = p3.id)
+      ), 0)
+    )`;
+
+    /** Lifetime units sold (non-cancelled orders). */
+    const sqlUnitsSold = `(
+      SELECT COALESCE(SUM(oi.qty), 0)
+      FROM order_items oi
+      INNER JOIN products p2 ON p2.id = oi.product_id
+      INNER JOIN orders ord ON ord.id = oi.order_id
+      WHERE p2.category_id = c.id AND ord.status <> 'cancelled'
+    )`;
+
+    const layoutValues = new Set(["clothing", "footwear", "accessories", "grooming"]);
+
+    let where = "WHERE 1=1";
+    const params = [];
+
+    if (qRaw.length > 0) {
+      const like = `%${qRaw}%`;
+      where += " AND (c.name_en LIKE ? OR c.name_bn LIKE ? OR c.slug LIKE ?)";
+      params.push(like, like, like);
+    }
+
+    if (layoutFilter !== "all" && layoutValues.has(layoutFilter)) {
+      where += " AND c.page_layout = ?";
+      params.push(layoutFilter);
+    }
+
+    if (hasProducts === "yes") {
+      where += " AND EXISTS (SELECT 1 FROM products p WHERE p.category_id = c.id)";
+    } else if (hasProducts === "no") {
+      where += " AND NOT EXISTS (SELECT 1 FROM products p WHERE p.category_id = c.id)";
+    }
+
+    if (stockFilter === "in_stock") {
+      where += ` AND ${sqlStockSum} > 0`;
+    } else if (stockFilter === "zero_stock") {
+      where += ` AND ${sqlStockSum} = 0`;
+    }
+
+    if (soldFilter === "has_sales") {
+      where += ` AND ${sqlUnitsSold} > 0`;
+    } else if (soldFilter === "no_sales") {
+      where += ` AND ${sqlUnitsSold} = 0`;
+    }
+
+    let orderSql = "ORDER BY c.sort_order ASC, c.id ASC";
+    if (sort === "sort_desc") orderSql = "ORDER BY c.sort_order DESC, c.id DESC";
+    else if (sort === "id_desc") orderSql = "ORDER BY c.id DESC";
+    else if (sort === "id_asc") orderSql = "ORDER BY c.id ASC";
+    else if (sort === "name_en_asc") orderSql = "ORDER BY c.name_en ASC";
+    else if (sort === "name_en_desc") orderSql = "ORDER BY c.name_en DESC";
+    else if (sort === "slug_asc") orderSql = "ORDER BY c.slug ASC";
+    else if (sort === "created_desc") orderSql = "ORDER BY c.created_at DESC";
+    else if (sort === "created_asc") orderSql = "ORDER BY c.created_at ASC";
+    else if (sort === "stock_desc") orderSql = `ORDER BY ${sqlStockSum} DESC, c.id DESC`;
+    else if (sort === "stock_asc") orderSql = `ORDER BY ${sqlStockSum} ASC, c.id ASC`;
+    else if (sort === "sold_desc") orderSql = `ORDER BY ${sqlUnitsSold} DESC, c.id DESC`;
+    else if (sort === "sold_asc") orderSql = `ORDER BY ${sqlUnitsSold} ASC, c.id ASC`;
+
+    const [[{ total }]] = await pool.query(`SELECT COUNT(*) AS total FROM categories c ${where}`, params);
+
     const [rows] = await pool.query(
-      `SELECT id, name_bn, name_en, slug, sort_order, page_layout, created_at
-       FROM categories
-       ORDER BY sort_order ASC, id ASC`
+      `SELECT c.id, c.name_bn, c.name_en, c.slug, c.sort_order, c.page_layout, c.cover_image, c.created_at,
+              ${sqlStockSum} AS stock_units,
+              ${sqlUnitsSold} AS units_sold
+       FROM categories c
+       ${where}
+       ${orderSql}
+       LIMIT ? OFFSET ?`,
+      [...params, pageSize, offset]
     );
-    res.json({ categories: rows });
+
+    res.json({
+      categories: rows,
+      total: Number(total) || 0,
+      page,
+      pageSize,
+    });
   } catch (e) {
     res.status(500).json({ error: "database_error", message: e.message });
   }
 });
 
 router.post("/categories", async (req, res) => {
-  const { name_bn, name_en, slug: rawSlug, sort_order, page_layout: layoutRaw } = req.body || {};
+  const { name_bn, name_en, slug: rawSlug, page_layout: layoutRaw, cover_image: rawCover } = req.body || {};
   if (!name_bn || !name_en) {
     return res.status(400).json({ error: "missing_fields" });
   }
@@ -294,15 +421,19 @@ router.post("/categories", async (req, res) => {
   if (page_layout === null) {
     return res.status(400).json({ error: "invalid_page_layout" });
   }
-  const order = sort_order != null ? Number(sort_order) : 0;
+  const cover_image = normalizeCoverImageUrl(rawCover);
   try {
+    const [[nextOrderRow]] = await pool.query(
+      `SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_sort FROM categories`
+    );
+    const order = Number(nextOrderRow?.next_sort) || 0;
     const [result] = await pool.query(
-      `INSERT INTO categories (name_bn, name_en, slug, sort_order, page_layout)
-       VALUES (?, ?, ?, ?, ?)`,
-      [name_bn, name_en, slug, Number.isFinite(order) ? order : 0, page_layout]
+      `INSERT INTO categories (name_bn, name_en, slug, sort_order, page_layout, cover_image)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [name_bn, name_en, slug, order, page_layout, cover_image]
     );
     const [rows] = await pool.query(
-      `SELECT id, name_bn, name_en, slug, sort_order, page_layout, created_at FROM categories WHERE id = ?`,
+      `SELECT id, name_bn, name_en, slug, sort_order, page_layout, cover_image, created_at FROM categories WHERE id = ?`,
       [result.insertId]
     );
     res.status(201).json({ category: rows[0] });
@@ -319,7 +450,7 @@ router.patch("/categories/:id", async (req, res) => {
   if (!Number.isFinite(id)) {
     return res.status(400).json({ error: "invalid_id" });
   }
-  const { name_bn, name_en, slug: rawSlug, sort_order, page_layout: layoutRaw } = req.body || {};
+  const { name_bn, name_en, slug: rawSlug, page_layout: layoutRaw, cover_image: rawCover } = req.body || {};
   const fields = [];
   const values = [];
   if (name_bn != null) {
@@ -336,10 +467,6 @@ router.patch("/categories/:id", async (req, res) => {
     fields.push("slug = ?");
     values.push(s);
   }
-  if (sort_order != null) {
-    fields.push("sort_order = ?");
-    values.push(Number(sort_order));
-  }
   if (layoutRaw !== undefined) {
     const page_layout = normalizePageLayout(layoutRaw);
     if (page_layout === null) {
@@ -347,6 +474,10 @@ router.patch("/categories/:id", async (req, res) => {
     }
     fields.push("page_layout = ?");
     values.push(page_layout);
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, "cover_image")) {
+    fields.push("cover_image = ?");
+    values.push(normalizeCoverImageUrl(rawCover));
   }
   if (!fields.length) {
     return res.status(400).json({ error: "no_updates" });
@@ -361,7 +492,7 @@ router.patch("/categories/:id", async (req, res) => {
       return res.status(404).json({ error: "not_found" });
     }
     const [rows] = await pool.query(
-      `SELECT id, name_bn, name_en, slug, sort_order, page_layout, created_at FROM categories WHERE id = ?`,
+      `SELECT id, name_bn, name_en, slug, sort_order, page_layout, cover_image, created_at FROM categories WHERE id = ?`,
       [id]
     );
     res.json({ category: rows[0] });
@@ -396,21 +527,54 @@ router.delete("/categories/:id", async (req, res) => {
   }
 });
 
-router.get("/brands", async (_req, res) => {
+router.get("/brands", async (req, res) => {
   try {
+    const qRaw = String(req.query.q ?? "").trim();
+    const sort = String(req.query.sort ?? "sort_asc").toLowerCase();
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize ?? "25"), 10) || 25));
+    const offset = (page - 1) * pageSize;
+
+    let where = "WHERE 1=1";
+    const params = [];
+    if (qRaw.length > 0) {
+      const like = `%${qRaw}%`;
+      where += " AND (name_en LIKE ? OR name_bn LIKE ? OR slug LIKE ?)";
+      params.push(like, like, like);
+    }
+
+    let orderSql = "ORDER BY sort_order ASC, id ASC";
+    if (sort === "sort_desc") orderSql = "ORDER BY sort_order DESC, id DESC";
+    else if (sort === "id_desc") orderSql = "ORDER BY id DESC";
+    else if (sort === "id_asc") orderSql = "ORDER BY id ASC";
+    else if (sort === "name_en_asc") orderSql = "ORDER BY name_en ASC";
+    else if (sort === "name_en_desc") orderSql = "ORDER BY name_en DESC";
+    else if (sort === "slug_asc") orderSql = "ORDER BY slug ASC";
+    else if (sort === "created_desc") orderSql = "ORDER BY created_at DESC";
+    else if (sort === "created_asc") orderSql = "ORDER BY created_at ASC";
+
+    const [[{ total }]] = await pool.query(`SELECT COUNT(*) AS total FROM brands ${where}`, params);
     const [rows] = await pool.query(
-      `SELECT id, name_bn, name_en, slug, sort_order, created_at
+      `SELECT id, name_bn, name_en, slug, sort_order, cover_image, created_at
        FROM brands
-       ORDER BY sort_order ASC, id ASC`
+       ${where}
+       ${orderSql}
+       LIMIT ? OFFSET ?`,
+      [...params, pageSize, offset]
     );
-    res.json({ brands: rows });
+    res.json({
+      brands: rows,
+      total: Number(total) || 0,
+      page,
+      pageSize,
+    });
   } catch (e) {
     res.status(500).json({ error: "database_error", message: e.message });
   }
 });
 
 router.post("/brands", async (req, res) => {
-  const { name_bn, name_en, slug: rawSlug, sort_order } = req.body || {};
+  const { name_bn, name_en, slug: rawSlug, cover_image: rawCover } = req.body || {};
   if (!name_bn || !name_en) {
     return res.status(400).json({ error: "missing_fields" });
   }
@@ -418,15 +582,19 @@ router.post("/brands", async (req, res) => {
   if (!slug) {
     return res.status(400).json({ error: "invalid_slug" });
   }
-  const order = sort_order != null ? Number(sort_order) : 0;
+  const cover_image = normalizeCoverImageUrl(rawCover);
   try {
+    const [[nextOrderRow]] = await pool.query(
+      `SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_sort FROM brands`
+    );
+    const order = Number(nextOrderRow?.next_sort) || 0;
     const [result] = await pool.query(
-      `INSERT INTO brands (name_bn, name_en, slug, sort_order)
-       VALUES (?, ?, ?, ?)`,
-      [name_bn, name_en, slug, Number.isFinite(order) ? order : 0]
+      `INSERT INTO brands (name_bn, name_en, slug, sort_order, cover_image)
+       VALUES (?, ?, ?, ?, ?)`,
+      [name_bn, name_en, slug, order, cover_image]
     );
     const [rows] = await pool.query(
-      `SELECT id, name_bn, name_en, slug, sort_order, created_at FROM brands WHERE id = ?`,
+      `SELECT id, name_bn, name_en, slug, sort_order, cover_image, created_at FROM brands WHERE id = ?`,
       [result.insertId]
     );
     res.status(201).json({ brand: rows[0] });
@@ -443,7 +611,7 @@ router.patch("/brands/:id", async (req, res) => {
   if (!Number.isFinite(id)) {
     return res.status(400).json({ error: "invalid_id" });
   }
-  const { name_bn, name_en, slug: rawSlug, sort_order } = req.body || {};
+  const { name_bn, name_en, slug: rawSlug, cover_image: rawCover } = req.body || {};
   const fields = [];
   const values = [];
   if (name_bn != null) {
@@ -460,9 +628,9 @@ router.patch("/brands/:id", async (req, res) => {
     fields.push("slug = ?");
     values.push(s);
   }
-  if (sort_order != null) {
-    fields.push("sort_order = ?");
-    values.push(Number(sort_order));
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, "cover_image")) {
+    fields.push("cover_image = ?");
+    values.push(normalizeCoverImageUrl(rawCover));
   }
   if (!fields.length) {
     return res.status(400).json({ error: "no_updates" });
@@ -477,7 +645,7 @@ router.patch("/brands/:id", async (req, res) => {
       return res.status(404).json({ error: "not_found" });
     }
     const [rows] = await pool.query(
-      `SELECT id, name_bn, name_en, slug, sort_order, created_at FROM brands WHERE id = ?`,
+      `SELECT id, name_bn, name_en, slug, sort_order, cover_image, created_at FROM brands WHERE id = ?`,
       [id]
     );
     res.json({ brand: rows[0] });
@@ -512,8 +680,93 @@ router.delete("/brands/:id", async (req, res) => {
   }
 });
 
-router.get("/products", async (_req, res) => {
+router.get("/products", async (req, res) => {
   try {
+    const qRaw = String(req.query.q ?? "").trim();
+    const categoryRaw = req.query.categoryId;
+    const brandRaw = req.query.brandId;
+    const activeFilter = String(req.query.active ?? "all").toLowerCase();
+    const stockFilter = String(req.query.stock ?? "all").toLowerCase();
+    const sort = String(req.query.sort ?? "id_desc").toLowerCase();
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize ?? "25"), 10) || 25));
+    const offset = (page - 1) * pageSize;
+
+    const priceMinRaw = req.query.priceMin;
+    const priceMaxRaw = req.query.priceMax;
+    const priceMin =
+      priceMinRaw != null && String(priceMinRaw).trim() !== ""
+        ? Number(priceMinRaw)
+        : null;
+    const priceMax =
+      priceMaxRaw != null && String(priceMaxRaw).trim() !== ""
+        ? Number(priceMaxRaw)
+        : null;
+
+    let where = "WHERE 1=1";
+    const params = [];
+
+    if (qRaw.length > 0) {
+      const like = `%${qRaw}%`;
+      where += " AND (p.name_en LIKE ? OR p.name_bn LIKE ? OR p.slug LIKE ?)";
+      params.push(like, like, like);
+    }
+
+    const catNum =
+      categoryRaw != null && String(categoryRaw).trim() !== ""
+        ? Number(categoryRaw)
+        : null;
+    if (catNum != null && Number.isFinite(catNum)) {
+      where += " AND p.category_id = ?";
+      params.push(catNum);
+    }
+
+    if (brandRaw === "none") {
+      where += " AND p.brand_id IS NULL";
+    } else if (brandRaw != null && String(brandRaw).trim() !== "" && brandRaw !== "all") {
+      const bid = Number(brandRaw);
+      if (Number.isFinite(bid)) {
+        where += " AND p.brand_id = ?";
+        params.push(bid);
+      }
+    }
+
+    if (activeFilter === "active") {
+      where += " AND p.is_active = 1";
+    } else if (activeFilter === "inactive") {
+      where += " AND p.is_active = 0";
+    }
+
+    if (stockFilter === "out") {
+      where += " AND p.stock = 0";
+    } else if (stockFilter === "low") {
+      where += " AND p.stock > 0 AND p.stock <= 5";
+    } else if (stockFilter === "ok") {
+      where += " AND p.stock > 5";
+    }
+
+    if (priceMin != null && Number.isFinite(priceMin)) {
+      where += " AND p.price >= ?";
+      params.push(priceMin);
+    }
+    if (priceMax != null && Number.isFinite(priceMax)) {
+      where += " AND p.price <= ?";
+      params.push(priceMax);
+    }
+
+    let orderSql = "ORDER BY p.id DESC";
+    if (sort === "id_asc") orderSql = "ORDER BY p.id ASC";
+    else if (sort === "price_desc") orderSql = "ORDER BY p.price DESC";
+    else if (sort === "price_asc") orderSql = "ORDER BY p.price ASC";
+    else if (sort === "name_en_asc") orderSql = "ORDER BY p.name_en ASC";
+    else if (sort === "name_en_desc") orderSql = "ORDER BY p.name_en DESC";
+    else if (sort === "stock_desc") orderSql = "ORDER BY p.stock DESC";
+    else if (sort === "stock_asc") orderSql = "ORDER BY p.stock ASC";
+    else if (sort === "created_desc") orderSql = "ORDER BY p.created_at DESC";
+    else if (sort === "created_asc") orderSql = "ORDER BY p.created_at ASC";
+
+    const [[{ total }]] = await pool.query(`SELECT COUNT(*) AS total FROM products p ${where}`, params);
+
     const [rows] = await pool.query(
       `SELECT p.id, p.category_id, p.brand_id, p.name_bn, p.name_en, p.slug,
               p.description_bn, p.description_en, p.price, p.compare_at_price,
@@ -523,9 +776,18 @@ router.get("/products", async (_req, res) => {
        FROM products p
        INNER JOIN categories c ON c.id = p.category_id
        LEFT JOIN brands b ON b.id = p.brand_id
-       ORDER BY p.id DESC`
+       ${where}
+       ${orderSql}
+       LIMIT ? OFFSET ?`,
+      [...params, pageSize, offset]
     );
-    res.json({ products: rows });
+
+    res.json({
+      products: rows,
+      total: Number(total) || 0,
+      page,
+      pageSize,
+    });
   } catch (e) {
     res.status(500).json({ error: "database_error", message: e.message });
   }
@@ -944,12 +1206,122 @@ router.patch("/home-hero", async (req, res) => {
   }
 });
 
-router.get("/users", async (_req, res) => {
+router.get("/users", async (req, res) => {
   try {
+    const qRaw = String(req.query.q ?? "").trim();
+    const roleFilter = String(req.query.role ?? "all").toLowerCase();
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize ?? "25"), 10) || 25));
+    const offset = (page - 1) * pageSize;
+    const sort = String(req.query.sort ?? "id_desc").toLowerCase();
+
+    let orderSql = "ORDER BY u.id DESC";
+    if (sort === "id_asc") orderSql = "ORDER BY u.id ASC";
+    else if (sort === "joined_desc") orderSql = "ORDER BY u.created_at DESC";
+    else if (sort === "joined_asc") orderSql = "ORDER BY u.created_at ASC";
+    else if (sort === "email_asc") orderSql = "ORDER BY u.email ASC";
+    else if (sort === "name_asc") orderSql = "ORDER BY u.name ASC";
+
+    let where = "WHERE 1=1";
+    const params = [];
+    if (qRaw.length > 0) {
+      const like = `%${qRaw}%`;
+      where += " AND (u.email LIKE ? OR u.name LIKE ?)";
+      params.push(like, like);
+    }
+    if (roleFilter === "admin" || roleFilter === "customer") {
+      where += " AND u.role = ?";
+      params.push(roleFilter);
+    }
+
+    const [[{ total }]] = await pool.query(`SELECT COUNT(*) AS total FROM users u ${where}`, params);
     const [rows] = await pool.query(
-      `SELECT id, email, name, role, created_at FROM users ORDER BY id DESC`
+      `SELECT u.id, u.email, u.name, u.role, u.created_at FROM users u ${where} ${orderSql} LIMIT ? OFFSET ?`,
+      [...params, pageSize, offset]
     );
-    res.json({ users: rows });
+    res.json({
+      users: rows,
+      total: Number(total) || 0,
+      page,
+      pageSize,
+    });
+  } catch (e) {
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.post("/users", async (req, res) => {
+  const { name, email, password, role } = req.body || {};
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  if (role !== "admin" && role !== "customer") {
+    return res.status(400).json({ error: "invalid_role" });
+  }
+  const displayName = String(name).trim().slice(0, 255);
+  const normalized = String(email).trim().toLowerCase();
+  const pw = String(password);
+  if (!displayName || !normalized) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  if (pw.length < 8) {
+    return res.status(400).json({ error: "weak_password" });
+  }
+  try {
+    const hash = await bcrypt.hash(pw, 10);
+    const [result] = await pool.query(
+      `INSERT INTO users (email, password_hash, role, name) VALUES (?, ?, ?, ?)`,
+      [normalized, hash, role, displayName]
+    );
+    const id = Number(result.insertId);
+    const [[row]] = await pool.query(
+      `SELECT id, email, name, role, created_at FROM users WHERE id = ?`,
+      [id]
+    );
+    try {
+      broadcastDashboardRefresh("users");
+    } catch {
+      /* non-fatal */
+    }
+    res.status(201).json({ user: row });
+  } catch (e) {
+    if (e.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ error: "duplicate_email" });
+    }
+    res.status(500).json({ error: "database_error", message: e.message });
+  }
+});
+
+router.delete("/users/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id) || id <= 0) {
+    return res.status(400).json({ error: "invalid_id" });
+  }
+  const adminId = Number(req.user?.id);
+  if (!Number.isFinite(adminId)) {
+    return res.status(500).json({ error: "server_error" });
+  }
+  if (id === adminId) {
+    return res.status(403).json({ error: "cannot_delete_self" });
+  }
+  try {
+    const [[target]] = await pool.query(`SELECT id, role FROM users WHERE id = ?`, [id]);
+    if (!target) {
+      return res.status(404).json({ error: "not_found" });
+    }
+    if (target.role === "admin") {
+      const [[{ c }]] = await pool.query(`SELECT COUNT(*) AS c FROM users WHERE role = 'admin'`);
+      if (Number(c) <= 1) {
+        return res.status(403).json({ error: "last_admin" });
+      }
+    }
+    await pool.query(`DELETE FROM users WHERE id = ?`, [id]);
+    try {
+      broadcastDashboardRefresh("users");
+    } catch {
+      /* non-fatal */
+    }
+    res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: "database_error", message: e.message });
   }
@@ -995,6 +1367,25 @@ router.patch("/users/:id", async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: "database_error", message: e.message });
   }
+});
+
+router.use(blogPostsAdminRouter);
+
+router.post("/catalog-cover", (req, res, next) => {
+  catalogCoverUpload.single("file")(req, res, (err) => {
+    if (err) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({ error: "file_too_large" });
+      }
+      return res.status(400).json({ error: "invalid_file_type" });
+    }
+    next();
+  });
+}, (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "missing_file" });
+  }
+  res.json({ url: `/uploads/catalog/${req.file.filename}` });
 });
 
 export default router;

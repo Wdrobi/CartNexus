@@ -29,6 +29,7 @@ import AdminUsers from "./pages/admin/AdminUsers.jsx";
 import AdminHomeHero from "./pages/admin/AdminHomeHero.jsx";
 import AdminOrders from "./pages/admin/AdminOrders.jsx";
 import AdminInventory from "./pages/admin/AdminInventory.jsx";
+import AdminBlog from "./pages/admin/AdminBlog.jsx";
 import RequireCustomer from "./components/RequireCustomer.jsx";
 import AccountLayout from "./pages/account/AccountLayout.jsx";
 import AccountDashboard from "./pages/account/AccountDashboard.jsx";
@@ -78,6 +79,7 @@ export default function App() {
             <Route path="brands" element={<AdminBrands />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="home-hero" element={<AdminHomeHero />} />
+            <Route path="blog" element={<AdminBlog />} />
           </Route>
         </Route>
       </Routes>

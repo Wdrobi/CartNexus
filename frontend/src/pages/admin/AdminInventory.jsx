@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { apiFetch } from "../../api/apiBase.js";
 import { authFetch } from "../../api/authFetch.js";
 import { brandName, productName } from "../../utils/productText.js";
 import { translateAdminError } from "../../utils/adminApiError.js";
@@ -94,7 +95,7 @@ export default function AdminInventory() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([authFetch("/api/admin/categories"), authFetch("/api/admin/brands")])
+    Promise.all([apiFetch("/api/categories"), apiFetch("/api/brands")])
       .then(async ([cr, br]) => {
         if (!cr.ok || !br.ok) return;
         const [cjson, bjson] = await Promise.all([cr.json(), br.json()]);

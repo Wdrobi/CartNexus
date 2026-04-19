@@ -1,6 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { siteOrigin } from "../../lib/siteOrigin.js";
 import { pickLocalized } from "../../data/blogPosts.js";
+import { resolvePublicAssetUrl } from "../../api/apiBase.js";
 
 function absUrl(path) {
   const o = siteOrigin();
@@ -85,7 +86,8 @@ export function BlogArticleSeo({ post, lang }) {
   const origin = siteOrigin();
   const path = `/blog/${post.slug}`;
   const canonical = absUrl(path);
-  const image = absUrl("/og-blog-default.svg");
+  const cover = post.imageUrl ? resolvePublicAssetUrl(post.imageUrl) : null;
+  const image = cover || absUrl("/og-blog-default.svg");
   const isBn = lang?.startsWith("bn");
   const headline = pickLocalized(post.title, lang);
   const description = pickLocalized(post.excerpt, lang);
@@ -97,7 +99,7 @@ export function BlogArticleSeo({ post, lang }) {
     "@type": "BlogPosting",
     headline,
     description,
-    image: image ? [image] : undefined,
+    image: [image],
     datePublished: `${post.datePublished}T08:00:00+06:00`,
     dateModified: `${post.dateModified}T08:00:00+06:00`,
     author: { "@type": "Person", name: post.author },
