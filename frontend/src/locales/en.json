@@ -78,7 +78,8 @@
     "copyright": "© {{year}} CartNexus. All rights reserved.",
     "crafted": "Men's fashion — CartNexus",
     "backToTop": "Back to top",
-    "support": "Customer support"
+    "support": "Customer support",
+    "openWhatsApp": "Chat on WhatsApp"
   },
   "home": {
     "badge": "Men's fashion · বাংলা · English",
@@ -366,6 +367,15 @@
       "request_failed": "The server could not process your message. Try again later.",
       "network": "Could not reach the server. Check your connection and that the API is running."
     }
+  },
+  "faqPage": {
+    "heroKicker": "Help",
+    "heroTitle": "Frequently Asked Questions",
+    "heroSubtitle": "Quick answers about orders, shipping, returns, and your account.",
+    "lastUpdated": "Last updated: {{date}}",
+    "staticIntro": "You can manage this page from Admin → Support → FAQs. When you publish content there, it replaces this placeholder.",
+    "staticBody": "For order status, sign in to your account. For shipping questions, check your confirmation email. For anything else, our team is happy to help from the Contact page.",
+    "contactCta": "Contact us"
   },
   "privacyPage": {
     "heroKicker": "Legal",
@@ -800,7 +810,41 @@
       "brands": "Brands",
       "users": "Users",
       "inventory": "Inventory",
-      "blog": "Blog"
+      "blog": "Blog",
+      "groupMain": "Overview",
+      "groupStore": "Catalog",
+      "groupContent": "Content",
+      "groupOps": "Operations",
+      "groupSupport": "Support",
+      "termsCms": "Terms & Conditions",
+      "faqsCms": "FAQs",
+      "privacyCms": "Privacy Policy"
+    },
+    "cmsPage": {
+      "hint": "When you save HTML here, the public page shows this content instead of the built-in static text. Leave both languages empty to use the default pages.",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "loadError": "Could not load this page from the server.",
+      "saveError": "Could not save. Check the API and try again.",
+      "tabEn": "English",
+      "tabBn": "Bangla",
+      "viewLive": "View public page",
+      "titleTerms": "Terms & Conditions",
+      "titleFaqs": "FAQs",
+      "titlePrivacy": "Privacy Policy",
+      "placeholderEn": "Write headings, lists, and paragraphs…",
+      "placeholderBn": "বাংলায় লিখুন…",
+      "uploadImage": "Upload image",
+      "loading": "Loading…",
+      "invalidKey": "Unknown page.",
+      "defaultPreviewTitle": "What the site shows now (built-in text)",
+      "defaultPreviewHint": "This is the same copy visitors see when the database is empty. Use the buttons to copy it into the editor, then change and save.",
+      "loadDefaultEn": "Load into editor (English)",
+      "loadDefaultBn": "Load into editor (Bangla)",
+      "loadDefaultBoth": "Load both languages",
+      "confirmReplace": "Replace the current editor text with the default? This cannot be undone (you can use the browser back button if you have not saved).",
+      "previewMatchesTab": "Preview follows the editor tab below"
     },
     "blog": {
       "hint": "Create and publish posts for /blog (English + Bangla). Posts appear on the storefront when marked published. Until the database has posts, the site falls back to built-in demo articles.",

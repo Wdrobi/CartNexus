@@ -241,3 +241,10 @@ CREATE TABLE blog_posts (
   KEY idx_blog_featured (is_featured, date_published),
   KEY idx_blog_created (created_at)
 );
+
+CREATE TABLE cms_pages (
+  page_key VARCHAR(32) NOT NULL PRIMARY KEY,
+  body_html_en MEDIUMTEXT NULL,
+  body_html_bn MEDIUMTEXT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

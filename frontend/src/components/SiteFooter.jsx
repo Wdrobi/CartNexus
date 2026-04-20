@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { getWhatsAppChatUrl } from "../utils/whatsappUrl.js";
 
 function ArrowRight({ className }) {
   return (
@@ -61,6 +62,7 @@ function IconVideo({ className }) {
 
 export default function SiteFooter({ showCta = true }) {
   const { t } = useTranslation();
+  const whatsAppUrl = useMemo(() => getWhatsAppChatUrl(), []);
   const year = new Date().getFullYear();
   const [showTop, setShowTop] = useState(false);
   const [email, setEmail] = useState("");
@@ -116,13 +118,25 @@ export default function SiteFooter({ showCta = true }) {
                   {t("footer.ctaBrowse")}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link
-                  to="/contact"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-white/40 bg-transparent px-8 py-3.5 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10 sm:w-auto"
-                >
-                  <PhoneIcon className="h-4 w-4" />
-                  {t("footer.ctaContact")}
-                </Link>
+                {whatsAppUrl ? (
+                  <a
+                    href={whatsAppUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-white/40 bg-transparent px-8 py-3.5 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10 sm:w-auto"
+                  >
+                    <PhoneIcon className="h-4 w-4" />
+                    {t("footer.ctaContact")}
+                  </a>
+                ) : (
+                  <Link
+                    to="/contact"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-white/40 bg-transparent px-8 py-3.5 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10 sm:w-auto"
+                  >
+                    <PhoneIcon className="h-4 w-4" />
+                    {t("footer.ctaContact")}
+                  </Link>
+                )}
               </div>
             </motion.div>
           </div>
@@ -164,9 +178,20 @@ export default function SiteFooter({ showCta = true }) {
                   <Link to="/about" className="text-slate-600 transition hover:text-brand-700">
                     {t("footer.linkAbout")}
                   </Link>
-                  <Link to="/contact" className="text-slate-600 transition hover:text-brand-700">
-                    {t("footer.linkContact")}
-                  </Link>
+                  {whatsAppUrl ? (
+                    <a
+                      href={whatsAppUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-600 transition hover:text-brand-700"
+                    >
+                      {t("footer.linkContact")}
+                    </a>
+                  ) : (
+                    <Link to="/contact" className="text-slate-600 transition hover:text-brand-700">
+                      {t("footer.linkContact")}
+                    </Link>
+                  )}
                   <Link to="/terms" className="text-slate-600 transition hover:text-brand-700">
                     {t("footer.linkTerms")}
                   </Link>
@@ -175,7 +200,7 @@ export default function SiteFooter({ showCta = true }) {
                   <Link to="/blog" className="text-slate-600 transition hover:text-brand-700">
                     {t("footer.linkBlog")}
                   </Link>
-                  <Link to="/contact#faq" className="text-slate-600 transition hover:text-brand-700">
+                  <Link to="/faqs" className="text-slate-600 transition hover:text-brand-700">
                     {t("footer.linkFaq")}
                   </Link>
                   <Link to="/privacy" className="text-slate-600 transition hover:text-brand-700">
@@ -251,18 +276,34 @@ export default function SiteFooter({ showCta = true }) {
             </svg>
           </motion.button>
         )}
-        <button
-          type="button"
-          className="pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 shadow-lg transition hover:border-brand-400 hover:text-brand-600"
-          aria-label={t("footer.support")}
-          onClick={() => document.getElementById("site-footer")?.scrollIntoView({ behavior: "smooth" })}
-        >
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-            <path d="M4 11a8 8 0 0116 0v5a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2a2 2 0 012-2h2.5" strokeLinecap="round" />
-            <path d="M8 11V9a4 4 0 018 0v2" strokeLinecap="round" />
-          </svg>
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" aria-hidden />
-        </button>
+        {whatsAppUrl ? (
+          <a
+            href={whatsAppUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 shadow-lg transition hover:border-brand-400 hover:text-brand-600"
+            aria-label={t("footer.openWhatsApp")}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+              <path d="M4 11a8 8 0 0116 0v5a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2a2 2 0 012-2h2.5" strokeLinecap="round" />
+              <path d="M8 11V9a4 4 0 018 0v2" strokeLinecap="round" />
+            </svg>
+            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" aria-hidden />
+          </a>
+        ) : (
+          <button
+            type="button"
+            className="pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 shadow-lg transition hover:border-brand-400 hover:text-brand-600"
+            aria-label={t("footer.support")}
+            onClick={() => document.getElementById("site-footer")?.scrollIntoView({ behavior: "smooth" })}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+              <path d="M4 11a8 8 0 0116 0v5a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2a2 2 0 012-2h2.5" strokeLinecap="round" />
+              <path d="M8 11V9a4 4 0 018 0v2" strokeLinecap="round" />
+            </svg>
+            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" aria-hidden />
+          </button>
+        )}
       </div>
     </>
   );

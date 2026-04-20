@@ -11,6 +11,7 @@ import AboutPage from "./pages/AboutPage.jsx";
 import ContactPage from "./pages/ContactPage.jsx";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
 import TermsPage from "./pages/TermsPage.jsx";
+import FaqsPage from "./pages/FaqsPage.jsx";
 import BlogListPage from "./pages/BlogListPage.jsx";
 import BlogPostPage from "./pages/BlogPostPage.jsx";
 import ShopProductPage from "./pages/ShopProductPage.jsx";
@@ -30,6 +31,7 @@ import AdminHomeHero from "./pages/admin/AdminHomeHero.jsx";
 import AdminOrders from "./pages/admin/AdminOrders.jsx";
 import AdminInventory from "./pages/admin/AdminInventory.jsx";
 import AdminBlog from "./pages/admin/AdminBlog.jsx";
+import AdminCmsPageEditor from "./pages/admin/AdminCmsPageEditor.jsx";
 import RequireCustomer from "./components/RequireCustomer.jsx";
 import AccountLayout from "./pages/account/AccountLayout.jsx";
 import AccountDashboard from "./pages/account/AccountDashboard.jsx";
@@ -51,6 +53,7 @@ export default function App() {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/faqs" element={<FaqsPage />} />
         <Route path="/blog" element={<BlogListPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />
         <Route path="/shop" element={<ShopPage />} />
@@ -80,6 +83,7 @@ export default function App() {
             <Route path="users" element={<AdminUsers />} />
             <Route path="home-hero" element={<AdminHomeHero />} />
             <Route path="blog" element={<AdminBlog />} />
+            <Route path="support/:pageKey" element={<AdminCmsPageEditor />} />
           </Route>
         </Route>
       </Routes>

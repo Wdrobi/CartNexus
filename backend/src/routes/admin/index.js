@@ -32,6 +32,7 @@ import {
 } from "../../utils/adminInventory.js";
 import { broadcastDashboardRefresh } from "../../realtime/adminWs.js";
 import blogPostsAdminRouter from "./blogPostsAdmin.js";
+import cmsPagesAdminRouter from "./cmsPagesAdmin.js";
 
 const router = Router();
 
@@ -1370,6 +1371,7 @@ router.patch("/users/:id", async (req, res) => {
 });
 
 router.use(blogPostsAdminRouter);
+router.use(cmsPagesAdminRouter);
 
 router.post("/catalog-cover", (req, res, next) => {
   catalogCoverUpload.single("file")(req, res, (err) => {
