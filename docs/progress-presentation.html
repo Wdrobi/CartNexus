@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CartNexus — Progress Presentation</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css" />
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Outfit:wght@600;700&display=swap");
+    :root {
+      --brand: #0d9488;
+      --brand-light: #ccfbf1;
+      --ink: #0c0f14;
+      --muted: #475569;
+    }
+    .reveal { font-family: "DM Sans", system-ui, sans-serif; }
+    .reveal h1, .reveal h2, .reveal h3 {
+      font-family: Outfit, system-ui, sans-serif;
+      color: var(--ink);
+      text-transform: none;
+    }
+    .reveal .slides section { text-align: left; }
+    .reveal .slides section.center-only { text-align: center; }
+    .tagline { color: var(--muted); font-size: 0.85em; margin-top: 0.5rem; }
+    .logo-mark {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 0.25rem;
+    }
+    .logo-mark span { color: var(--brand); }
+    .pill {
+      display: inline-block;
+      background: var(--brand-light);
+      color: #0f766e;
+      padding: 0.2rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.52em;
+      font-weight: 600;
+      vertical-align: middle;
+      margin-left: 0.35rem;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.35rem;
+      align-items: start;
+      font-size: 0.78em;
+    }
+    .reveal ul { margin-left: 0; }
+    .reveal li { margin-bottom: 0.35em; }
+    .small { font-size: 0.72em; color: var(--muted); }
+    .accent { color: var(--brand); font-weight: 600; }
+    .title-slide {
+      background: linear-gradient(145deg, #f0fdfa 0%, #fff 45%, #ecfeff 100%);
+      border-radius: 1rem;
+      padding: 2rem !important;
+    }
+    .progress-bar {
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 0.35rem 0 0.5rem;
+    }
+    .progress-bar > span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--brand), #2dd4bf);
+      border-radius: 4px;
+      animation: fillBar 2s ease-out forwards;
+      transform-origin: left;
+    }
+    @keyframes fillBar {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+    /* Interactive stack layers */
+    .stack-vis {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-top: 0.75rem;
+      font-size: 0.72em;
+      perspective: 400px;
+    }
+    .stack-layer {
+      padding: 0.65rem 1rem;
+      border-radius: 0.45rem;
+      border: 1px solid #cbd5e1;
+      background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+      cursor: default;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s;
+      box-shadow: 0 2px 8px rgb(15 23 42 / 0.06);
+    }
+    .stack-layer:hover {
+      transform: translateX(8px) rotateX(2deg);
+      border-color: var(--brand);
+      box-shadow: 0 8px 24px rgb(13 148 136 / 0.18);
+    }
+    .stack-layer strong { color: var(--brand); display: block; font-size: 0.88em; margin-bottom: 0.2rem; }
+    .mermaid-wrap {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: #f8fafc;
+      border-radius: 0.5rem;
+      border: 1px solid #e2e8f0;
+      font-size: 0.42em;
+      overflow: hidden;
+    }
+    .reveal .mermaid { text-align: center; }
+    kbd {
+      font-size: 0.85em;
+      padding: 0.15em 0.45em;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      background: #f1f5f9;
+    }
+    .hint-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 30;
+      font-size: 11px;
+      padding: 6px 16px;
+      background: rgb(15 23 42 / 0.85);
+      color: #e2e8f0;
+      display: flex;
+      gap: 1.25rem;
+      justify-content: center;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="hint-bar" aria-hidden="true">
+    <span><kbd>→</kbd> next</span>
+    <span><kbd>←</kbd> prev</span>
+    <span><kbd>F</kbd> fullscreen</span>
+    <span><kbd>O</kbd> overview</span>
+    <span><kbd>S</kbd> speaker notes (if added)</span>
+  </div>
+
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- Title -->
+      <section class="center-only title-slide" data-background-color="#f8fafc">
+        <p class="logo-mark">Cart<span>Nexus</span></p>
+        <h2 style="margin-bottom: 0.25em;">Internship Progress Presentation</h2>
+        <p class="tagline">Men’s Fashion E‑Commerce Platform</p>
+        <p style="margin-top: 2rem; font-size: 0.65em; color: var(--muted);">
+          NextTech Limited · Department of CSE · Batch 26/220 · Spring 2026
+        </p>
+      </section>
+
+      <!-- Agenda -->
+      <section>
+        <h2>Agenda <span class="pill">Today</span></h2>
+        <ul style="font-size: 0.82em; line-height: 1.55;">
+          <li class="fragment">Project &amp; team</li>
+          <li class="fragment">Goals &amp; progress</li>
+          <li class="fragment">Architecture &amp; diagrams</li>
+          <li class="fragment">Storefront &amp; admin features</li>
+          <li class="fragment">Database design</li>
+          <li class="fragment">Challenges &amp; next steps</li>
+          <li class="fragment">Demo &amp; Q&amp;A</li>
+        </ul>
+      </section>
+
+      <!-- Team -->
+      <section>
+        <h2>Team <span class="pill">Contributors</span></h2>
+        <table style="font-size: 0.68em; width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--brand);">
+              <th align="left" style="padding: 0.45rem;">Name</th>
+              <th align="left" style="padding: 0.45rem;">Student ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding: 0.38rem;">Md. Rabiul Isalam</td><td>222002068</td></tr>
+            <tr><td style="padding: 0.38rem;">Ahrafun Nahar Arifa</td><td>222002066</td></tr>
+            <tr><td style="padding: 0.38rem;">Hasebul Hasan</td><td>221002104</td></tr>
+            <tr><td style="padding: 0.38rem;">Labib Tahmid</td><td>221002269</td></tr>
+            <tr><td style="padding: 0.38rem;">Zinedin Hassan Choudhury</td><td>222002148</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top: 1.15rem; font-size: 0.7em;"><span class="accent">Supervisor:</span> Mobasser Ahmed</p>
+      </section>
+
+      <!-- Overview -->
+      <section>
+        <h2>Project Overview <span class="pill">Summary</span></h2>
+        <p class="fragment" style="font-size: 0.76em; line-height: 1.55;">
+          <strong>CartNexus</strong> is a full‑stack bilingual (English / Bangla) web store for men’s fashion:
+          browsing, cart, checkout, customer accounts, and an admin panel for catalog, orders, inventory, and content.
+        </p>
+        <div class="two-col" style="margin-top: 0.85rem;">
+          <div>
+            <strong class="accent">Goals</strong>
+            <ul style="font-size: 0.74em;">
+              <li class="fragment">Modern storefront UX</li>
+              <li class="fragment">REST API + MySQL persistence</li>
+              <li class="fragment">Admin dashboard &amp; inventory</li>
+            </ul>
+          </div>
+          <div>
+            <strong class="accent">Status</strong>
+            <p style="margin: 0.25rem 0; font-size: 0.74em;" class="fragment">Core MVP implemented — testing &amp; deployment in progress.</p>
+            <div class="progress-bar fragment"><span style="width: 78%; transform: scaleX(1);"></span></div>
+            <span class="small fragment">Indicative completion (~78%)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tech stack interactive -->
+      <section>
+        <h2>Technology Stack <span class="pill">Layers</span></h2>
+        <p class="small" style="margin-bottom: 0.35rem;">Hover each layer — interactive overview.</p>
+        <div class="two-col">
+          <div class="stack-vis">
+            <div class="stack-layer fragment"><strong>Presentation</strong>React 18 · Vite · Tailwind CSS · React Router · Framer Motion</div>
+            <div class="stack-layer fragment"><strong>i18n &amp; UX</strong>i18next (EN/BN) · responsive layouts · Recharts (admin)</div>
+          </div>
+          <div class="stack-vis">
+            <div class="stack-layer fragment"><strong>Application</strong>Node.js · Express · JWT · bcrypt · Multer · WebSocket</div>
+            <div class="stack-layer fragment"><strong>Data</strong>MySQL 8 · relational schema · migrations · static /uploads</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Architecture diagram -->
+      <section>
+        <h2>System Architecture <span class="pill">3-Tier</span></h2>
+        <div class="mermaid-wrap">
+          <pre class="mermaid">
+flowchart LR
+  subgraph Client[" "]
+    B[Browser SPA]
+  end
+  subgraph Server[" "]
+    E[Express API]
+    W[WebSocket admin]
+  end
+  subgraph Data[" "]
+    M[(MySQL)]
+    U[/uploads files/]
+  end
+  B -->|HTTPS JSON /api| E
+  E --> M
+  E --> U
+  E -.-> W
+          </pre>
+        </div>
+        <p class="small">Production: reverse proxy + TLS · Dev: Vite proxy to API.</p>
+      </section>
+
+      <!-- Data flow -->
+      <section>
+        <h2>Data Flow <span class="pill">Checkout path</span></h2>
+        <div class="mermaid-wrap">
+          <pre class="mermaid">
+flowchart TB
+  U[Customer] -->|browse| CAT[Catalog API]
+  CAT --> P[(products)]
+  U -->|cart| CART[Browser cart state]
+  U -->|POST order| ORD[Orders API]
+  ORD --> O[(orders + order_items)]
+  ORD -->|response| U
+          </pre>
+        </div>
+      </section>
+
+      <!-- Use case style -->
+      <section>
+        <h2>Actors &amp; Features <span class="pill">Use cases</span></h2>
+        <div class="mermaid-wrap">
+          <pre class="mermaid">
+flowchart TB
+  G[Guest]
+  C[Customer]
+  A[Admin]
+
+  G --> UC1[Browse &amp; search]
+  G --> UC2[Cart &amp; guest checkout]
+  C --> UC3[Account &amp; addresses]
+  C --> UC4[Order history]
+  A --> UC5[Catalog CRUD]
+  A --> UC6[Orders &amp; inventory]
+  A --> UC7[Content &amp; settings]
+          </pre>
+        </div>
+      </section>
+
+      <!-- Storefront -->
+      <section>
+        <h2>Storefront Delivered <span class="pill">Customer</span></h2>
+        <ul style="font-size: 0.78em; line-height: 1.48;">
+          <li class="fragment">Home hero banner (API-driven)</li>
+          <li class="fragment">Shop · categories / brands · product detail</li>
+          <li class="fragment">Color variants · cart context</li>
+          <li class="fragment">Checkout · guest or logged-in</li>
+          <li class="fragment">Blog · CMS pages (terms, privacy, FAQs)</li>
+          <li class="fragment">Footer · store settings · WhatsApp / Messenger FAB</li>
+        </ul>
+      </section>
+
+      <!-- Admin -->
+      <section>
+        <h2>Admin Panel <span class="pill">Back office</span></h2>
+        <ul style="font-size: 0.76em; line-height: 1.42;">
+          <li class="fragment">Dashboard analytics &amp; charts</li>
+          <li class="fragment">Products · categories · brands</li>
+          <li class="fragment">Orders · inventory &amp; stock movements</li>
+          <li class="fragment">Users · home hero · blog · CMS</li>
+          <li class="fragment">Store settings (contact, social, chat links)</li>
+        </ul>
+      </section>
+
+      <!-- ER -->
+      <section>
+        <h2>Database Design <span class="pill">ER core</span></h2>
+        <div class="mermaid-wrap" style="font-size: 0.38em;">
+          <pre class="mermaid">
+erDiagram
+  users ||--o{ user_addresses : has
+  users ||--o{ orders : places
+  categories ||--o{ products : contains
+  brands ||--o{ products : optional
+  products ||--o{ product_color_variants : has
+  orders ||--|{ order_items : line
+  products ||--o{ order_items : ref
+          </pre>
+        </div>
+        <p class="small">Full DDL: <code style="background:#f1f5f9;padding:0.12em 0.4em;border-radius:4px;">backend/db/schema.sql</code></p>
+      </section>
+
+      <!-- Challenges -->
+      <section>
+        <h2>Challenges <span class="pill">Mitigation</span></h2>
+        <ul style="font-size: 0.74em; line-height: 1.48;">
+          <li class="fragment"><strong>Schema drift:</strong> migrations + changelog discipline</li>
+          <li class="fragment"><strong>Deployment:</strong> env secrets · HTTPS · persistent uploads</li>
+          <li class="fragment"><strong>i18n:</strong> UI + product fields in two languages</li>
+          <li class="fragment"><strong>Payments:</strong> COD baseline · gateway integration = future work</li>
+        </ul>
+      </section>
+
+      <!-- Next -->
+      <section>
+        <h2>Next Steps <span class="pill">Roadmap</span></h2>
+        <ol style="font-size: 0.76em; line-height: 1.5;">
+          <li class="fragment">End-to-end QA &amp; bug fixes</li>
+          <li class="fragment">Performance (Lighthouse) &amp; smoke API tests</li>
+          <li class="fragment">Production deploy &amp; monitoring</li>
+          <li class="fragment">SEO fine-tuning &amp; analytics</li>
+          <li class="fragment">Final documentation &amp; demo recording</li>
+        </ol>
+      </section>
+
+      <!-- Closing -->
+      <section class="center-only title-slide" data-background-color="#f0fdfa">
+        <h2 style="font-size: 1.75em;">Thank you</h2>
+        <p class="tagline" style="font-size: 1em;">Demo · Questions &amp; Answers</p>
+        <p style="margin-top: 1.75rem; font-size: 0.65em; color: var(--muted);">
+          <kbd>F</kbd> fullscreen · <kbd>Esc</kbd> slide overview · click or <kbd>→</kbd> to advance fragments
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "neutral",
+      securityLevel: "loose",
+      fontFamily: "DM Sans, sans-serif",
+      themeVariables: {
+        primaryColor: "#ccfbf1",
+        primaryTextColor: "#0f172a",
+        lineColor: "#0d9488",
+        fontSize: "14px",
+      },
+      flowchart: { curve: "basis", padding: 6 },
+    });
+
+    function renderMermaid() {
+      var list = document.querySelectorAll("pre.mermaid:not([data-mermaid-done])");
+      if (!list.length) return;
+      var arr = Array.prototype.slice.call(list);
+      mermaid.run({ nodes: arr }).then(function () {
+        arr.forEach(function (el) {
+          el.setAttribute("data-mermaid-done", "1");
+        });
+      }).catch(function () {});
+    }
+
+    Reveal.initialize({
+      hash: true,
+      slideNumber: "c/t",
+      transition: "slide",
+      backgroundTransition: "fade",
+      width: 1280,
+      height: 720,
+      margin: 0.08,
+      fragments: true,
+      fragmentInURL: true,
+    });
+
+    Reveal.on("ready", function () {
+      setTimeout(renderMermaid, 120);
+    });
+    Reveal.on("slidechanged", function () {
+      setTimeout(renderMermaid, 80);
+    });
+  </script>
+</body>
+</html>

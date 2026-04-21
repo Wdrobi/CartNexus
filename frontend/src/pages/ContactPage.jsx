@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { apiFetch } from "../api/apiBase.js";
 import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
+import { useStoreSettings } from "../context/StoreSettingsContext.jsx";
 
-/** OpenStreetMap embed — Dhaka city centre (placeholder). Replace with your real map if needed. */
-const MAP_EMBED_SRC =
+/** Default map when admin map URL is empty */
+const MAP_EMBED_SRC_DEFAULT =
   "https://www.openstreetmap.org/export/embed.html?bbox=90.365%2C23.765%2C90.445%2C23.825&layer=mapnik&marker=23.7937%2C90.4066";
+const MAP_EXTERNAL_DEFAULT =
+  "https://www.openstreetmap.org/?mlat=23.7937&mlon=90.4066#map=14/23.7937/90.4066";
 
 function IconMapPin({ className }) {
   return (
@@ -58,7 +61,52 @@ const fadeUp = {
 };
 
 export default function ContactPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { settings } = useStoreSettings();
+  const isBn = i18n.language?.startsWith("bn");
+
+  const addressMain = useMemo(() => {
+    const en = settings?.contactAddressEn?.trim();
+    const bn = settings?.contactAddressBn?.trim();
+    if (isBn && bn) return bn;
+    if (!isBn && en) return en;
+    return en || bn || t("contactPage.infoAddressBody");
+  }, [settings, isBn, t]);
+
+  const addressSub = useMemo(() => {
+    const hasCustom =
+      (isBn && settings?.contactAddressBn?.trim()) ||
+      (!isBn && settings?.contactAddressEn?.trim()) ||
+      settings?.contactAddressEn?.trim() ||
+      settings?.contactAddressBn?.trim();
+    return hasCustom ? "" : t("contactPage.infoAddressLine2");
+  }, [settings, isBn, t]);
+
+  const phoneMain = settings?.contactPhone?.trim() || t("contactPage.infoPhoneBody");
+  const phoneSub = settings?.contactPhone?.trim() ? "" : t("contactPage.infoPhoneNote");
+
+  const emailMain = settings?.contactEmail?.trim() || t("contactPage.infoEmailBody");
+  const emailSub = settings?.contactEmail?.trim() ? "" : t("contactPage.infoEmailNote");
+
+  const hoursMain = useMemo(() => {
+    const en = settings?.businessHoursEn?.trim();
+    const bn = settings?.businessHoursBn?.trim();
+    if (isBn && bn) return bn;
+    if (!isBn && en) return en;
+    return en || bn || t("contactPage.infoHoursBody");
+  }, [settings, isBn, t]);
+
+  const hoursSub = useMemo(() => {
+    const hasCustom =
+      (isBn && settings?.businessHoursBn?.trim()) ||
+      (!isBn && settings?.businessHoursEn?.trim()) ||
+      settings?.businessHoursEn?.trim() ||
+      settings?.businessHoursBn?.trim();
+    return hasCustom ? "" : t("contactPage.infoHoursNote");
+  }, [settings, isBn, t]);
+
+  const mapEmbedSrc = settings?.mapEmbedUrl?.trim() || MAP_EMBED_SRC_DEFAULT;
+  const mapExternalHref = settings?.mapExternalUrl?.trim() || MAP_EXTERNAL_DEFAULT;
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -103,26 +151,26 @@ export default function ContactPage() {
     {
       icon: IconMapPin,
       titleKey: "infoAddressTitle",
-      bodyKey: "infoAddressBody",
-      subKey: "infoAddressLine2",
+      bodyText: addressMain,
+      subText: addressSub,
     },
     {
       icon: IconPhone,
       titleKey: "infoPhoneTitle",
-      bodyKey: "infoPhoneBody",
-      subKey: "infoPhoneNote",
+      bodyText: phoneMain,
+      subText: phoneSub,
     },
     {
       icon: IconMail,
       titleKey: "infoEmailTitle",
-      bodyKey: "infoEmailBody",
-      subKey: "infoEmailNote",
+      bodyText: emailMain,
+      subText: emailSub,
     },
     {
       icon: IconClock,
       titleKey: "infoHoursTitle",
-      bodyKey: "infoHoursBody",
-      subKey: "infoHoursNote",
+      bodyText: hoursMain,
+      subText: hoursSub,
     },
   ];
 
@@ -170,7 +218,7 @@ export default function ContactPage() {
                 {t("contactPage.infoSectionTitle")}
               </h2>
               <ul className="space-y-4">
-                {infoCards.map(({ icon: Icon, titleKey, bodyKey, subKey }, idx) => (
+                {infoCards.map(({ icon: Icon, titleKey, bodyText, subText }, idx) => (
                   <motion.li
                     key={titleKey}
                     className="flex min-w-0 gap-4 rounded-2xl border border-slate-200/90 bg-slate-50/80 p-5 transition hover:border-brand-200/80 hover:bg-white"
@@ -187,8 +235,8 @@ export default function ContactPage() {
                       <h3 className="font-display text-sm font-bold uppercase tracking-wide text-ink-950">
                         {t(`contactPage.${titleKey}`)}
                       </h3>
-                      <p className="mt-1 text-sm font-medium text-slate-800">{t(`contactPage.${bodyKey}`)}</p>
-                      <p className="mt-1 text-xs text-slate-500">{t(`contactPage.${subKey}`)}</p>
+                      <p className="mt-1 whitespace-pre-line text-sm font-medium text-slate-800">{bodyText}</p>
+                      {subText ? <p className="mt-1 text-xs text-slate-500">{subText}</p> : null}
                     </div>
                   </motion.li>
                 ))}
@@ -197,14 +245,14 @@ export default function ContactPage() {
               <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-100 shadow-inner">
                 <iframe
                   title={t("contactPage.mapTitle")}
-                  src={MAP_EMBED_SRC}
+                  src={mapEmbedSrc}
                   className="h-52 w-full border-0 sm:h-64"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                 />
                 <p className="border-t border-slate-200/80 px-4 py-3 text-center text-xs text-slate-500">
                   <a
-                    href="https://www.openstreetmap.org/?mlat=23.7937&mlon=90.4066#map=14/23.7937/90.4066"
+                    href={mapExternalHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-medium text-brand-700 underline-offset-2 hover:underline"

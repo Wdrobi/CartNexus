@@ -83,10 +83,19 @@ export default function AdminLogin() {
         >
           <Link
             to="/"
-            className="mb-8 inline-flex items-center gap-2 text-sm text-slate-500 transition hover:text-brand-300"
+            className="group mb-8 inline-flex max-w-full items-center gap-3 rounded-xl border border-brand-500/35 bg-gradient-to-r from-brand-500/[0.14] via-teal-600/[0.09] to-slate-900/30 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_28px_-12px_rgba(20,184,166,0.45)] ring-1 ring-brand-400/15 transition hover:border-brand-300/50 hover:from-brand-500/22 hover:via-teal-500/14 hover:shadow-[0_14px_36px_-10px_rgba(45,212,191,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/45"
           >
-            <span aria-hidden>←</span>
-            {t("admin.backSite")}
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-500/25 text-brand-50 ring-1 ring-brand-400/30 transition group-hover:bg-brand-400/30 group-hover:text-white">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden className="h-[17px] w-[17px]" stroke="currentColor" strokeWidth="1.75">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </span>
+            <span className="min-w-0 text-left">
+              <span className="block text-sm font-semibold text-brand-50 group-hover:text-white">{t("admin.backSite")}</span>
+              <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-200/65 group-hover:text-brand-100/90">
+                {t("admin.backSiteKicker")}
+              </span>
+            </span>
           </Link>
 
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-ink-900/85 shadow-2xl shadow-black/50 backdrop-blur-xl">

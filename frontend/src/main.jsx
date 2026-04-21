@@ -6,6 +6,7 @@ import "./i18n/config.js";
 import App from "./App.jsx";
 import { AuthProvider } from "./auth/AuthContext.jsx";
 import { CartProvider } from "./cart/CartContext.jsx";
+import { StoreSettingsProvider } from "./context/StoreSettingsContext.jsx";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -14,7 +15,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <HelmetProvider>
         <AuthProvider>
           <CartProvider>
-            <App />
+            <StoreSettingsProvider>
+              <App />
+            </StoreSettingsProvider>
           </CartProvider>
         </AuthProvider>
       </HelmetProvider>

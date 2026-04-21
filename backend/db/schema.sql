@@ -248,3 +248,44 @@ CREATE TABLE cms_pages (
   body_html_bn MEDIUMTEXT NULL,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE contact_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  first_name VARCHAR(120) NOT NULL,
+  last_name VARCHAR(120) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  subject VARCHAR(200) NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_contact_messages_created (created_at),
+  KEY idx_contact_messages_email (email(191))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE newsletter_subscribers (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) NOT NULL,
+  source VARCHAR(64) NOT NULL DEFAULT 'footer',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_newsletter_subscribers_email (email(191)),
+  KEY idx_newsletter_subscribers_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE store_settings (
+  id TINYINT UNSIGNED PRIMARY KEY DEFAULT 1,
+  contact_address_en TEXT NULL,
+  contact_address_bn TEXT NULL,
+  contact_phone VARCHAR(64) NULL,
+  contact_email VARCHAR(255) NULL,
+  business_hours_en TEXT NULL,
+  business_hours_bn TEXT NULL,
+  social_facebook_url VARCHAR(512) NULL,
+  social_instagram_url VARCHAR(512) NULL,
+  social_youtube_url VARCHAR(512) NULL,
+  social_other_url VARCHAR(512) NULL,
+  map_embed_url VARCHAR(1024) NULL,
+  map_external_url VARCHAR(1024) NULL,
+  whatsapp_digits VARCHAR(32) NULL,
+  whatsapp_prefill VARCHAR(600) NULL,
+  messenger_url VARCHAR(512) NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

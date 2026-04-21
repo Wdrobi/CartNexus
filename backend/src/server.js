@@ -12,6 +12,7 @@ import productsRouter from "./routes/products.js";
 import authRouter from "./routes/auth.js";
 import userAddressesRouter from "./routes/userAddresses.js";
 import contactRouter from "./routes/contact.js";
+import newsletterRouter from "./routes/newsletter.js";
 import adminRouter from "./routes/admin/index.js";
 import { requireAdmin } from "./middleware/auth.js";
 import avatarUploadRouter from "./routes/avatarUpload.js";
@@ -19,6 +20,7 @@ import homeRouter from "./routes/home.js";
 import ordersRouter from "./routes/orders.js";
 import blogRouter from "./routes/blog.js";
 import cmsPagesRouter from "./routes/cmsPages.js";
+import storeSettingsRouter from "./routes/storeSettings.js";
 import { attachAdminWebSocket } from "./realtime/adminWs.js";
 
 dotenv.config();
@@ -64,9 +66,11 @@ app.use("/api/auth", avatarUploadRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/auth", userAddressesRouter);
 app.use("/api/contact", contactRouter);
+app.use("/api/newsletter", newsletterRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/blog", blogRouter);
 app.use("/api/cms", cmsPagesRouter);
+app.use("/api", storeSettingsRouter);
 app.use("/api/admin", requireAdmin, adminRouter);
 
 app.use((_req, res) => {

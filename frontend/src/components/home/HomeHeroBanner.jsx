@@ -11,7 +11,17 @@ function pickLang(lang, en, bn) {
   return bn != null ? String(bn) : "";
 }
 
-const AUTO_MS = 5500;
+/** Auto-advance interval (both hero images required in admin). Hover pause only when interval is slower. */
+const AUTO_MS = 50;
+
+/** Crossfade duration — must stay below interval so slides visibly swap (was stuck when fade > interval). */
+function fadeDurationMs(reduceMotion, intervalMs) {
+  if (reduceMotion) return 0;
+  if (intervalMs <= 80) return Math.max(0, Math.floor(intervalMs * 0.45));
+  return Math.min(320, Math.max(180, intervalMs - 160));
+}
+
+const PAUSE_ON_HOVER = AUTO_MS >= 400;
 
 function IconChevronLeft({ className }) {
   return (
@@ -78,7 +88,7 @@ export default function HomeHeroBanner() {
 
   useEffect(() => {
     if (slides.length < 2 || reduceMotion) return undefined;
-    if (hovered) return undefined;
+    if (PAUSE_ON_HOVER && hovered) return undefined;
     const id = window.setInterval(() => {
       setActive((i) => (i + 1) % slides.length);
     }, AUTO_MS);
@@ -116,7 +126,7 @@ export default function HomeHeroBanner() {
 
   const from = hero.gradient_from || "#0f172a";
   const to = hero.gradient_to || "#0f766e";
-  const fadeMs = reduceMotion ? 0 : 800;
+  const fadeMs = fadeDurationMs(reduceMotion, AUTO_MS);
 
   const arrowBtnClass =
     "pointer-events-auto absolute top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/50 text-white shadow-lg backdrop-blur-sm transition hover:bg-black/65 hover:border-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/80 sm:h-12 sm:w-12 opacity-95 md:opacity-0 md:transition-opacity md:duration-200 md:group-hover:opacity-100 md:group-focus-within:opacity-100";
@@ -139,8 +149,8 @@ export default function HomeHeroBanner() {
     >
       <div
         className="group relative min-h-[min(88dvh,920px)] w-full overflow-hidden sm:min-h-[min(82dvh,880px)]"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseEnter={() => PAUSE_ON_HOVER && setHovered(true)}
+        onMouseLeave={() => PAUSE_ON_HOVER && setHovered(false)}
       >
         {slides.length > 0 &&
           slides.map((src, i) => (

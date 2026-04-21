@@ -33,6 +33,9 @@ import {
 import { broadcastDashboardRefresh } from "../../realtime/adminWs.js";
 import blogPostsAdminRouter from "./blogPostsAdmin.js";
 import cmsPagesAdminRouter from "./cmsPagesAdmin.js";
+import storeSettingsAdminRouter from "./storeSettingsAdmin.js";
+import contactMessagesAdminRouter from "./contactMessagesAdmin.js";
+import newsletterSubscribersAdminRouter from "./newsletterSubscribersAdmin.js";
 
 const router = Router();
 
@@ -1372,6 +1375,9 @@ router.patch("/users/:id", async (req, res) => {
 
 router.use(blogPostsAdminRouter);
 router.use(cmsPagesAdminRouter);
+router.use(storeSettingsAdminRouter);
+router.use(contactMessagesAdminRouter);
+router.use(newsletterSubscribersAdminRouter);
 
 router.post("/catalog-cover", (req, res, next) => {
   catalogCoverUpload.single("file")(req, res, (err) => {

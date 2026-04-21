@@ -32,6 +32,9 @@ import AdminOrders from "./pages/admin/AdminOrders.jsx";
 import AdminInventory from "./pages/admin/AdminInventory.jsx";
 import AdminBlog from "./pages/admin/AdminBlog.jsx";
 import AdminCmsPageEditor from "./pages/admin/AdminCmsPageEditor.jsx";
+import AdminStoreSettings from "./pages/admin/AdminStoreSettings.jsx";
+import AdminContactMessages from "./pages/admin/AdminContactMessages.jsx";
+import AdminNewsletterSubscribers from "./pages/admin/AdminNewsletterSubscribers.jsx";
 import RequireCustomer from "./components/RequireCustomer.jsx";
 import AccountLayout from "./pages/account/AccountLayout.jsx";
 import AccountDashboard from "./pages/account/AccountDashboard.jsx";
@@ -83,7 +86,10 @@ export default function App() {
             <Route path="users" element={<AdminUsers />} />
             <Route path="home-hero" element={<AdminHomeHero />} />
             <Route path="blog" element={<AdminBlog />} />
+            <Route path="contact-messages" element={<AdminContactMessages />} />
+            <Route path="newsletter-subscribers" element={<AdminNewsletterSubscribers />} />
             <Route path="support/:pageKey" element={<AdminCmsPageEditor />} />
+            <Route path="store-settings" element={<AdminStoreSettings />} />
           </Route>
         </Route>
       </Routes>

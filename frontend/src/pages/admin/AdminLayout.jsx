@@ -1,6 +1,56 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../auth/AuthContext.jsx";
+
+const SIDEBAR_STORAGE_KEY = "cartnexus.admin.sidebar.sections.v1";
+
+const SECTION_KEYS = ["main", "store", "content", "ops", "support", "settings"];
+
+const SECTION_TITLE_I18N = {
+  main: "admin.nav.groupMain",
+  store: "admin.nav.groupStore",
+  content: "admin.nav.groupContent",
+  ops: "admin.nav.groupOps",
+  support: "admin.nav.groupSupport",
+  settings: "admin.nav.groupSettings",
+};
+
+function loadSidebarSections() {
+  const defaults = Object.fromEntries(SECTION_KEYS.map((k) => [k, true]));
+  try {
+    const raw = sessionStorage.getItem(SIDEBAR_STORAGE_KEY);
+    if (!raw) return defaults;
+    const parsed = JSON.parse(raw);
+    const next = { ...defaults };
+    for (const k of SECTION_KEYS) {
+      if (typeof parsed[k] === "boolean") next[k] = parsed[k];
+    }
+    return next;
+  } catch {
+    return defaults;
+  }
+}
+
+function persistSidebarSections(next) {
+  try {
+    sessionStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Which nav section should be highlighted / auto-expanded from the path */
+function inferActiveSection(pathname) {
+  const p = pathname.replace(/\/$/, "") || "/admin";
+  if (p === "/admin") return "main";
+  if (/^\/admin\/(orders|inventory|products|categories|brands)/.test(pathname)) return "store";
+  if (/^\/admin\/(home-hero|blog)/.test(pathname)) return "content";
+  if (/^\/admin\/users/.test(pathname)) return "ops";
+  if (/^\/admin\/(support|contact-messages|newsletter-subscribers)/.test(pathname)) return "support";
+  if (/^\/admin\/store-settings/.test(pathname)) return "settings";
+  return null;
+}
 
 function IconDashboard(props) {
   return (
@@ -94,6 +144,26 @@ function IconFaq(props) {
   );
 }
 
+function IconMail(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden stroke="currentColor" strokeWidth="1.75" {...props}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+      />
+    </svg>
+  );
+}
+
+function IconNewsletter(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden stroke="currentColor" strokeWidth="1.75" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 12h10M4 16h14" />
+    </svg>
+  );
+}
+
 function IconPrivacy(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden stroke="currentColor" strokeWidth="1.75" {...props}>
@@ -102,11 +172,66 @@ function IconPrivacy(props) {
   );
 }
 
-function NavSection({ title, children }) {
+function IconSettings(props) {
   return (
-    <div className="space-y-1">
-      <p className="px-1 pb-0.5 pt-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 first:pt-0">{title}</p>
-      <div className="flex flex-col gap-0.5">{children}</div>
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden stroke="currentColor" strokeWidth="1.75" {...props}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
+/** Open storefront (public site) — used for “View site” CTA */
+function IconViewSite(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden stroke="currentColor" strokeWidth="1.75" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+    </svg>
+  );
+}
+
+function IconChevronSection({ open, className }) {
+  return (
+    <svg
+      className={`shrink-0 transition-transform duration-300 ease-out ${open ? "rotate-0" : "-rotate-90"} ${className ?? ""}`}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+function CollapsibleNavSection({ sectionKey, title, open, onToggle, children }) {
+  const toggleLabel = open ? `${title} — collapse` : `${title} — expand`;
+  return (
+    <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <button
+        type="button"
+        onClick={() => onToggle(sectionKey)}
+        className="flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left transition hover:bg-white/[0.05]"
+        aria-expanded={open}
+        aria-controls={`admin-nav-${sectionKey}`}
+        aria-label={toggleLabel}
+      >
+        <span className="select-none font-display text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">{title}</span>
+        <IconChevronSection open={open} className="h-4 w-4 text-slate-500" />
+      </button>
+      <div
+        id={`admin-nav-${sectionKey}`}
+        className={`grid overflow-hidden transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+      >
+        <div className="min-h-0">
+          <div className="flex flex-col gap-0.5 px-1 pb-2 pt-0.5">{children}</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -114,48 +239,96 @@ function NavSection({ title, children }) {
 export default function AdminLayout() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const location = useLocation();
+
+  const [sectionsOpen, setSectionsOpen] = useState(loadSidebarSections);
+
+  const toggleSection = useCallback((key) => {
+    setSectionsOpen((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      persistSidebarSections(next);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const active = inferActiveSection(location.pathname);
+    if (!active) return;
+    setSectionsOpen((prev) => {
+      if (prev[active]) return prev;
+      const next = { ...prev, [active]: true };
+      persistSidebarSections(next);
+      return next;
+    });
+  }, [location.pathname]);
 
   const itemClass = ({ isActive }) =>
-    `group flex items-center gap-3 rounded-r-xl border-l-[3px] py-2 pl-3 pr-2 text-sm font-medium transition ${
+    `group relative flex items-center gap-3 rounded-xl border border-transparent py-2 pl-2.5 pr-2 text-sm font-medium transition-all duration-200 ${
       isActive
-        ? "border-brand-500 bg-gradient-to-r from-brand-500/[0.14] via-brand-500/[0.06] to-transparent text-white shadow-[inset_0_0_0_1px_rgba(244,63,94,0.08)]"
-        : "border-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-slate-200"
+        ? "border-brand-500/35 bg-gradient-to-r from-brand-500/20 via-brand-500/[0.08] to-transparent text-white shadow-[0_0_24px_-4px_rgba(20,184,166,0.35),inset_0_0_0_1px_rgba(45,212,191,0.12)]"
+        : "text-slate-400 hover:border-white/[0.06] hover:bg-white/[0.05] hover:text-slate-100"
     }`;
 
   const iconWrap = (isActive) =>
-    `flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${
-      isActive ? "bg-brand-500/20 text-brand-200" : "bg-white/[0.04] text-slate-500 group-hover:bg-white/[0.07] group-hover:text-slate-300"
+    `relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
+      isActive
+        ? "bg-brand-500/25 text-brand-100 shadow-inner ring-1 ring-brand-400/30"
+        : "bg-white/[0.05] text-slate-500 ring-1 ring-white/[0.04] group-hover:bg-white/[0.09] group-hover:text-slate-300 group-hover:ring-white/[0.08]"
     }`;
 
+  const activeSection = useMemo(() => inferActiveSection(location.pathname), [location.pathname]);
+
   return (
-    <div className="min-h-dvh bg-[#0b1020] text-slate-100">
+    <div className="min-h-dvh bg-[#070a12] text-slate-100">
       <div className="flex min-h-dvh flex-col lg:flex-row">
-        <aside className="flex shrink-0 flex-col border-b border-white/[0.07] bg-gradient-to-b from-[#141b2e] to-[#0f1524] lg:w-72 lg:border-b-0 lg:border-r lg:border-white/[0.07]">
-          <div className="flex max-h-[min(100dvh,100vh)] flex-col px-3 py-4 sm:px-4 lg:flex-1 lg:px-4 lg:py-8">
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
+        <aside className="relative flex shrink-0 flex-col overflow-hidden border-b border-white/[0.07] bg-gradient-to-b from-[#121a2e] via-[#0e1424] to-[#0a0f1c] lg:sticky lg:top-0 lg:z-20 lg:h-dvh lg:max-h-dvh lg:w-[19rem] lg:max-w-[19rem] lg:self-start lg:border-b-0 lg:border-r lg:border-white/[0.07] lg:shadow-[inset_-1px_0_0_rgba(45,212,191,0.07)]">
+          <div
+            className="pointer-events-none absolute -right-24 top-1/4 h-48 w-48 rounded-full bg-brand-500/10 blur-3xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -left-16 bottom-20 h-36 w-36 rounded-full bg-teal-600/10 blur-3xl"
+            aria-hidden
+          />
+
+          <div className="relative flex max-h-[min(100dvh,100vh)] min-h-0 flex-col px-3 py-4 sm:px-4 lg:h-full lg:max-h-none lg:flex-1 lg:px-4 lg:py-7">
+            <div className="group rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.07] to-white/[0.02] p-3 shadow-lg shadow-black/30 ring-1 ring-white/[0.06] transition hover:border-brand-500/25 hover:shadow-brand-900/20">
               <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-teal-600 text-sm font-bold text-white shadow-lg shadow-brand-900/40">
+                <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 via-brand-600 to-teal-700 text-sm font-bold text-white shadow-lg shadow-brand-950/50 ring-2 ring-white/10 transition group-hover:scale-[1.02]">
                   CN
+                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#121a2e]" title="Live" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-display text-base font-semibold leading-tight text-white">
-                    Cart<span className="text-brand-400">Nexus</span>
+                  <p className="font-display text-base font-semibold leading-tight tracking-tight text-white">
+                    Cart<span className="bg-gradient-to-r from-brand-300 to-brand-500 bg-clip-text text-transparent">Nexus</span>
                   </p>
-                  <p className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-slate-500">{t("admin.panel")}</p>
-                  {user && (
+                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-300/90">{t("admin.panel")}</p>
+                  {user ? (
                     <p className="mt-2 truncate text-xs text-slate-400" title={user.email}>
                       {user.name}
                     </p>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
 
+            {activeSection && SECTION_TITLE_I18N[activeSection] ? (
+              <p className="mt-3 px-1 text-[11px] text-slate-500">
+                <span className="text-slate-600">{t("admin.navSectionHint")}:</span>{" "}
+                <span className="font-medium text-brand-200/90">{t(SECTION_TITLE_I18N[activeSection])}</span>
+              </p>
+            ) : null}
+
             <nav
-              className="mt-4 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pb-2 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.12)_transparent] lg:mt-6"
+              className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pb-2 pt-1 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent] lg:mt-4"
               aria-label={t("admin.panel")}
             >
-              <NavSection title={t("admin.nav.groupMain")}>
+              <CollapsibleNavSection
+                sectionKey="main"
+                title={t("admin.nav.groupMain")}
+                open={sectionsOpen.main}
+                onToggle={toggleSection}
+              >
                 <NavLink to="/admin" end className={itemClass}>
                   {({ isActive }) => (
                     <>
@@ -166,9 +339,14 @@ export default function AdminLayout() {
                     </>
                   )}
                 </NavLink>
-              </NavSection>
+              </CollapsibleNavSection>
 
-              <NavSection title={t("admin.nav.groupStore")}>
+              <CollapsibleNavSection
+                sectionKey="store"
+                title={t("admin.nav.groupStore")}
+                open={sectionsOpen.store}
+                onToggle={toggleSection}
+              >
                 <NavLink to="/admin/orders" className={itemClass}>
                   {({ isActive }) => (
                     <>
@@ -219,9 +397,14 @@ export default function AdminLayout() {
                     </>
                   )}
                 </NavLink>
-              </NavSection>
+              </CollapsibleNavSection>
 
-              <NavSection title={t("admin.nav.groupContent")}>
+              <CollapsibleNavSection
+                sectionKey="content"
+                title={t("admin.nav.groupContent")}
+                open={sectionsOpen.content}
+                onToggle={toggleSection}
+              >
                 <NavLink to="/admin/home-hero" className={itemClass}>
                   {({ isActive }) => (
                     <>
@@ -242,9 +425,14 @@ export default function AdminLayout() {
                     </>
                   )}
                 </NavLink>
-              </NavSection>
+              </CollapsibleNavSection>
 
-              <NavSection title={t("admin.nav.groupOps")}>
+              <CollapsibleNavSection
+                sectionKey="ops"
+                title={t("admin.nav.groupOps")}
+                open={sectionsOpen.ops}
+                onToggle={toggleSection}
+              >
                 <NavLink to="/admin/users" className={itemClass}>
                   {({ isActive }) => (
                     <>
@@ -255,9 +443,34 @@ export default function AdminLayout() {
                     </>
                   )}
                 </NavLink>
-              </NavSection>
+              </CollapsibleNavSection>
 
-              <NavSection title={t("admin.nav.groupSupport")}>
+              <CollapsibleNavSection
+                sectionKey="support"
+                title={t("admin.nav.groupSupport")}
+                open={sectionsOpen.support}
+                onToggle={toggleSection}
+              >
+                <NavLink to="/admin/contact-messages" className={itemClass}>
+                  {({ isActive }) => (
+                    <>
+                      <span className={iconWrap(isActive)}>
+                        <IconMail className="h-5 w-5" />
+                      </span>
+                      <span>{t("admin.nav.contactInbox")}</span>
+                    </>
+                  )}
+                </NavLink>
+                <NavLink to="/admin/newsletter-subscribers" className={itemClass}>
+                  {({ isActive }) => (
+                    <>
+                      <span className={iconWrap(isActive)}>
+                        <IconNewsletter className="h-5 w-5" />
+                      </span>
+                      <span>{t("admin.nav.newsletterSubscribers")}</span>
+                    </>
+                  )}
+                </NavLink>
                 <NavLink to="/admin/support/terms" className={itemClass}>
                   {({ isActive }) => (
                     <>
@@ -288,28 +501,53 @@ export default function AdminLayout() {
                     </>
                   )}
                 </NavLink>
-              </NavSection>
+              </CollapsibleNavSection>
+
+              <CollapsibleNavSection
+                sectionKey="settings"
+                title={t("admin.nav.groupSettings")}
+                open={sectionsOpen.settings}
+                onToggle={toggleSection}
+              >
+                <NavLink to="/admin/store-settings" className={itemClass}>
+                  {({ isActive }) => (
+                    <>
+                      <span className={iconWrap(isActive)}>
+                        <IconSettings className="h-5 w-5" />
+                      </span>
+                      <span>{t("admin.nav.storeSettings")}</span>
+                    </>
+                  )}
+                </NavLink>
+              </CollapsibleNavSection>
             </nav>
 
-            <div className="mt-auto flex flex-shrink-0 flex-col gap-2 border-t border-white/[0.06] pt-4">
+            <div className="mt-auto flex flex-shrink-0 flex-col gap-2 border-t border-white/[0.07] pt-4">
               <button
                 type="button"
                 onClick={() => logout()}
-                className="flex w-full items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-slate-400 transition hover:border-red-500/35 hover:bg-red-500/10 hover:text-red-300"
+                className="flex w-full items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:border-red-500/40 hover:bg-red-500/[0.12] hover:text-red-200"
               >
                 {t("auth.logout")}
               </button>
               <NavLink
                 to="/"
-                className="flex w-full items-center justify-center rounded-xl px-3 py-2 text-sm text-slate-500 transition hover:bg-white/[0.04] hover:text-brand-300"
+                className="group relative flex w-full items-center justify-center overflow-hidden rounded-xl border border-brand-500/40 bg-gradient-to-r from-brand-500/[0.18] via-teal-600/[0.12] to-slate-900/40 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_-12px_rgba(20,184,166,0.45)] ring-1 ring-brand-400/15 transition duration-200 hover:border-brand-300/55 hover:from-brand-500/28 hover:via-teal-500/[0.18] hover:to-slate-900/55 hover:shadow-[0_12px_32px_-12px_rgba(45,212,191,0.5)] hover:ring-brand-300/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0e1424]"
               >
-                ← {t("admin.backSite")}
+                <span
+                  className="pointer-events-none absolute -right-6 -top-10 h-20 w-20 rounded-full bg-brand-400/12 blur-2xl transition-opacity group-hover:opacity-90"
+                  aria-hidden
+                />
+                <span className="relative z-[1] inline-flex max-w-full items-center justify-center gap-2 text-sm font-medium">
+                  <IconViewSite className="h-[1.125rem] w-[1.125rem] shrink-0 text-brand-200 transition group-hover:text-white" />
+                  <span className="truncate text-brand-50 group-hover:text-white">{t("admin.backSite")}</span>
+                </span>
               </NavLink>
             </div>
           </div>
         </aside>
 
-        <div className="relative min-w-0 flex-1 border-l border-transparent bg-[#070a14] px-[20px] py-4 sm:py-6 lg:rounded-tl-3xl lg:border-l-white/[0.06] lg:bg-ink-950/90 lg:py-8 lg:shadow-[inset_1px_0_0_rgba(255,255,255,0.04)]">
+        <div className="relative min-w-0 flex-1 border-l border-transparent bg-[#070a14] px-[20px] py-4 sm:py-6 lg:rounded-tl-3xl lg:border-l-white/[0.06] lg:bg-ink-950/95 lg:py-8 lg:shadow-[inset_1px_0_0_rgba(255,255,255,0.05)]">
           <Outlet />
         </div>
       </div>

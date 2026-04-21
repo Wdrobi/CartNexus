@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { getWhatsAppChatUrl } from "../utils/whatsappUrl.js";
+import { useStoreSettings } from "../context/StoreSettingsContext.jsx";
+import { apiFetch } from "../api/apiBase.js";
+import { normalizeExternalUrl } from "../utils/normalizeExternalUrl.js";
+import { resolveWhatsAppUrl } from "../utils/whatsappUrl.js";
 
 function ArrowRight({ className }) {
   return (
@@ -53,20 +56,49 @@ function IconYoutube({ className }) {
 
 function IconVideo({ className }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
       <rect x="2" y="5" width="14" height="14" rx="2" />
       <path d="M16 10l6-3v10l-6-3" strokeLinejoin="round" />
     </svg>
   );
 }
 
+function IconMessenger({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M12 2C6.48 2 2 6.02 2 10.95c0 2.07.82 4.01 2.27 5.62L2 22l5.62-2.96c1.52.82 3.26 1.29 5.07 1.31h.06c5.52 0 10-4.02 10-8.95S17.52 2 12 2zm.52 11.95h-.08c-.54 0-1.62-.34-2.91-1.24l-.24-.17-2.47 1.04.87-2.08-.18-.29c-.96-1.53-1.54-2.81-1.54-4.06 0-2.07 1.74-3.73 3.87-3.73 1.03 0 2 .43 2.73 1.21.73.76 1.14 1.76 1.13 2.82-.01 2.06-1.74 3.72-3.87 3.72z" />
+    </svg>
+  );
+}
+
+function IconWhatsApp({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.521-.075-.148-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.883 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
+  );
+}
+
 export default function SiteFooter({ showCta = true }) {
   const { t } = useTranslation();
-  const whatsAppUrl = useMemo(() => getWhatsAppChatUrl(), []);
+  const { settings } = useStoreSettings();
+  const whatsAppUrl = useMemo(() => resolveWhatsAppUrl(settings), [settings]);
+  const messengerUrl = useMemo(() => {
+    const raw = settings?.messengerUrl?.trim();
+    return raw ? normalizeExternalUrl(raw) : null;
+  }, [settings]);
+
   const year = new Date().getFullYear();
   const [showTop, setShowTop] = useState(false);
   const [email, setEmail] = useState("");
   const [joined, setJoined] = useState(false);
+  const [newsletterBusy, setNewsletterBusy] = useState(false);
+  const [newsletterError, setNewsletterError] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const chatMenuRef = useRef(null);
+  const chatFabRef = useRef(null);
+
+  const showFabMenu = Boolean(whatsAppUrl || messengerUrl);
 
   useEffect(() => {
     const onScroll = () => setShowTop(window.scrollY > 400);
@@ -75,21 +107,78 @@ export default function SiteFooter({ showCta = true }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (!chatOpen) return;
+    function onDocDown(e) {
+      const t = e.target;
+      if (chatMenuRef.current?.contains(t) || chatFabRef.current?.contains(t)) return;
+      setChatOpen(false);
+    }
+    document.addEventListener("mousedown", onDocDown);
+    return () => document.removeEventListener("mousedown", onDocDown);
+  }, [chatOpen]);
+
   function scrollTop() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function onNewsletter(e) {
+  async function onNewsletter(e) {
     e.preventDefault();
-    if (email.trim()) {
+    const trimmed = email.trim().toLowerCase();
+    setNewsletterError(null);
+    if (!trimmed) {
+      setNewsletterError("missing_email");
+      return;
+    }
+    const basicEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!basicEmail.test(trimmed)) {
+      setNewsletterError("invalid_email");
+      return;
+    }
+    setNewsletterBusy(true);
+    try {
+      const r = await apiFetch("/api/newsletter/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed, source: "footer" }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setNewsletterError(data.error || "request_failed");
+        return;
+      }
       setJoined(true);
       setEmail("");
-      setTimeout(() => setJoined(false), 4000);
+      window.setTimeout(() => setJoined(false), 4000);
+    } catch {
+      setNewsletterError("network");
+    } finally {
+      setNewsletterBusy(false);
     }
   }
 
+  function toggleChatFab() {
+    if (!showFabMenu) {
+      document.getElementById("site-footer")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+    setChatOpen((o) => !o);
+  }
+
   const socialClass =
-    "flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300/80 text-slate-600 transition hover:border-brand-500 hover:bg-brand-50 hover:text-brand-600";
+    "relative z-10 flex h-11 w-11 items-center justify-center rounded-lg border border-slate-400/95 bg-white text-ink-950 shadow-sm ring-1 ring-black/[0.04] transition hover:border-brand-600 hover:bg-brand-50 hover:text-brand-700 hover:shadow-md";
+
+  const socialItems = useMemo(() => {
+    const raw = [
+      { url: settings?.socialFacebookUrl, Icon: IconFacebook, label: "Facebook" },
+      { url: settings?.socialInstagramUrl, Icon: IconInstagram, label: "Instagram" },
+      { url: settings?.socialYoutubeUrl, Icon: IconYoutube, label: "YouTube" },
+      { url: settings?.socialOtherUrl, Icon: IconVideo, label: t("footer.socialOtherAria") },
+    ];
+    return raw
+      .map((item) => ({ ...item, href: normalizeExternalUrl(item.url) }))
+      .filter((item) => Boolean(item.href));
+  }, [settings, t]);
 
   return (
     <>
@@ -118,25 +207,13 @@ export default function SiteFooter({ showCta = true }) {
                   {t("footer.ctaBrowse")}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                {whatsAppUrl ? (
-                  <a
-                    href={whatsAppUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-white/40 bg-transparent px-8 py-3.5 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10 sm:w-auto"
-                  >
-                    <PhoneIcon className="h-4 w-4" />
-                    {t("footer.ctaContact")}
-                  </a>
-                ) : (
-                  <Link
-                    to="/contact"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-white/40 bg-transparent px-8 py-3.5 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10 sm:w-auto"
-                  >
-                    <PhoneIcon className="h-4 w-4" />
-                    {t("footer.ctaContact")}
-                  </Link>
-                )}
+                <Link
+                  to="/contact"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-white/40 bg-transparent px-8 py-3.5 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10 sm:w-auto"
+                >
+                  <PhoneIcon className="h-4 w-4" />
+                  {t("footer.ctaContact")}
+                </Link>
               </div>
             </motion.div>
           </div>
@@ -150,9 +227,7 @@ export default function SiteFooter({ showCta = true }) {
               <p className="font-display text-2xl font-bold text-ink-950">
                 Cart<span className="text-brand-600">Nexus</span>
               </p>
-              <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-600">
-                {t("footer.aboutBody")}
-              </p>
+              <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-600">{t("footer.aboutBody")}</p>
               <div className="mt-6 flex flex-wrap gap-2">
                 <span className="rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-800">
                   {t("footer.badge1")}
@@ -167,9 +242,7 @@ export default function SiteFooter({ showCta = true }) {
             </div>
 
             <div className="lg:col-span-4">
-              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-600">
-                {t("footer.quickLinks")}
-              </h3>
+              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-600">{t("footer.quickLinks")}</h3>
               <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                 <div className="flex flex-col gap-2">
                   <Link to="/categories" className="text-slate-600 transition hover:text-brand-700">
@@ -178,20 +251,9 @@ export default function SiteFooter({ showCta = true }) {
                   <Link to="/about" className="text-slate-600 transition hover:text-brand-700">
                     {t("footer.linkAbout")}
                   </Link>
-                  {whatsAppUrl ? (
-                    <a
-                      href={whatsAppUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-slate-600 transition hover:text-brand-700"
-                    >
-                      {t("footer.linkContact")}
-                    </a>
-                  ) : (
-                    <Link to="/contact" className="text-slate-600 transition hover:text-brand-700">
-                      {t("footer.linkContact")}
-                    </Link>
-                  )}
+                  <Link to="/contact" className="text-slate-600 transition hover:text-brand-700">
+                    {t("footer.linkContact")}
+                  </Link>
                   <Link to="/terms" className="text-slate-600 transition hover:text-brand-700">
                     {t("footer.linkTerms")}
                   </Link>
@@ -211,39 +273,66 @@ export default function SiteFooter({ showCta = true }) {
             </div>
 
             <div className="lg:col-span-4" id="newsletter">
-              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-600">
-                {t("footer.stayConnected")}
-              </h3>
-              <div className="mt-6 flex gap-3">
-                <a href="#" className={socialClass} aria-label="Facebook" onClick={(e) => e.preventDefault()}>
-                  <IconFacebook className="h-4 w-4" />
-                </a>
-                <a href="#" className={socialClass} aria-label="Instagram" onClick={(e) => e.preventDefault()}>
-                  <IconInstagram className="h-4 w-4" />
-                </a>
-                <a href="#" className={socialClass} aria-label="YouTube" onClick={(e) => e.preventDefault()}>
-                  <IconYoutube className="h-4 w-4" />
-                </a>
-                <a href="#" className={socialClass} aria-label="Video" onClick={(e) => e.preventDefault()}>
-                  <IconVideo className="h-4 w-4" />
-                </a>
+              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-600">{t("footer.stayConnected")}</h3>
+              <div className="mt-6 flex flex-wrap gap-3">
+                {socialItems.length > 0 ? (
+                  socialItems.map(({ href, Icon, label }) => (
+                    <a
+                      key={label}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={socialClass}
+                      aria-label={label}
+                    >
+                      <Icon className="h-[1.125rem] w-[1.125rem] shrink-0" />
+                    </a>
+                  ))
+                ) : (
+                  <>
+                    <span className={`${socialClass} cursor-not-allowed opacity-[0.68]`} aria-hidden title={t("footer.socialPlaceholder")}>
+                      <IconFacebook className="h-[1.125rem] w-[1.125rem] shrink-0" />
+                    </span>
+                    <span className={`${socialClass} cursor-not-allowed opacity-[0.68]`} aria-hidden>
+                      <IconInstagram className="h-[1.125rem] w-[1.125rem] shrink-0" />
+                    </span>
+                    <span className={`${socialClass} cursor-not-allowed opacity-[0.68]`} aria-hidden>
+                      <IconYoutube className="h-[1.125rem] w-[1.125rem] shrink-0" />
+                    </span>
+                    <span className={`${socialClass} cursor-not-allowed opacity-[0.68]`} aria-hidden>
+                      <IconVideo className="h-[1.125rem] w-[1.125rem] shrink-0" />
+                    </span>
+                  </>
+                )}
               </div>
+
               <p className="mt-8 text-sm font-medium text-slate-700">{t("footer.newsletterHint")}</p>
               <form onSubmit={onNewsletter} className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setNewsletterError(null);
+                  }}
                   placeholder={t("footer.newsletterPlaceholder")}
-                  className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none ring-brand-500/0 transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                  disabled={newsletterBusy}
+                  autoComplete="email"
+                  className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none ring-brand-500/0 transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:opacity-60"
                 />
                 <button
                   type="submit"
-                  className="shrink-0 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-brand-500"
+                  disabled={newsletterBusy}
+                  className="shrink-0 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-65"
                 >
-                  {t("footer.newsletterJoin")}
+                  {newsletterBusy ? t("footer.newsletterSending") : t("footer.newsletterJoin")}
                 </button>
               </form>
+              {newsletterError && (
+                <p className="mt-2 text-xs font-medium text-red-700">
+                  {t(`footer.newsletterErr.${newsletterError}`, { defaultValue: "" }) || t("footer.newsletterErr.generic")}
+                </p>
+              )}
               {joined && (
                 <p className="mt-2 text-xs font-medium text-brand-700">{t("footer.newsletterThanks")}</p>
               )}
@@ -253,15 +342,49 @@ export default function SiteFooter({ showCta = true }) {
 
         <div className="border-t border-slate-200/80 bg-slate-200/40">
           <div className="flex w-full flex-col items-center justify-between gap-3 px-[20px] py-5 text-xs text-slate-600 sm:flex-row">
-            <span>
-              {t("footer.copyright", { year })}
-            </span>
+            <span>{t("footer.copyright", { year })}</span>
             <span className="text-center sm:text-right">{t("footer.crafted")}</span>
           </div>
         </div>
       </footer>
 
-      <div className="pointer-events-none fixed z-40 flex flex-col gap-3 [bottom:calc(1.5rem+env(safe-area-inset-bottom,0px))] [right:calc(1rem+env(safe-area-inset-right,0px))] sm:[right:calc(1.5rem+env(safe-area-inset-right,0px))]">
+      <div className="pointer-events-none fixed z-40 flex flex-col items-end gap-3 [bottom:calc(1.5rem+env(safe-area-inset-bottom,0px))] [right:calc(1rem+env(safe-area-inset-right,0px))] sm:[right:calc(1.5rem+env(safe-area-inset-right,0px))]">
+        {chatOpen && showFabMenu && (
+          <div
+            ref={chatMenuRef}
+            className="pointer-events-auto mb-1 w-[min(100vw-2rem,17rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white py-2 shadow-xl shadow-slate-900/15"
+          >
+            <p className="border-b border-slate-100 px-4 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {t("footer.chatMenuTitle")}
+            </p>
+            <div className="flex flex-col py-1">
+              {whatsAppUrl ? (
+                <a
+                  href={whatsAppUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-800 transition hover:bg-brand-50 hover:text-brand-800"
+                  onClick={() => setChatOpen(false)}
+                >
+                  <IconWhatsApp className="h-6 w-6 shrink-0 text-emerald-600" />
+                  {t("footer.chatWhatsApp")}
+                </a>
+              ) : null}
+              {messengerUrl ? (
+                <a
+                  href={messengerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-800 transition hover:bg-brand-50 hover:text-brand-800"
+                  onClick={() => setChatOpen(false)}
+                >
+                  <IconMessenger className="h-6 w-6 shrink-0 text-blue-600" />
+                  {t("footer.chatMessenger")}
+                </a>
+              ) : null}
+            </div>
+          </div>
+        )}
         {showTop && (
           <motion.button
             type="button"
@@ -276,34 +399,21 @@ export default function SiteFooter({ showCta = true }) {
             </svg>
           </motion.button>
         )}
-        {whatsAppUrl ? (
-          <a
-            href={whatsAppUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 shadow-lg transition hover:border-brand-400 hover:text-brand-600"
-            aria-label={t("footer.openWhatsApp")}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-              <path d="M4 11a8 8 0 0116 0v5a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2a2 2 0 012-2h2.5" strokeLinecap="round" />
-              <path d="M8 11V9a4 4 0 018 0v2" strokeLinecap="round" />
-            </svg>
-            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" aria-hidden />
-          </a>
-        ) : (
-          <button
-            type="button"
-            className="pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 shadow-lg transition hover:border-brand-400 hover:text-brand-600"
-            aria-label={t("footer.support")}
-            onClick={() => document.getElementById("site-footer")?.scrollIntoView({ behavior: "smooth" })}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-              <path d="M4 11a8 8 0 0116 0v5a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2a2 2 0 012-2h2.5" strokeLinecap="round" />
-              <path d="M8 11V9a4 4 0 018 0v2" strokeLinecap="round" />
-            </svg>
-            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" aria-hidden />
-          </button>
-        )}
+        <button
+          ref={chatFabRef}
+          type="button"
+          className="pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 shadow-lg transition hover:border-brand-400 hover:text-brand-600"
+          aria-expanded={chatOpen}
+          aria-haspopup="true"
+          aria-label={showFabMenu ? t("footer.supportMenuOpen") : t("footer.support")}
+          onClick={toggleChatFab}
+        >
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+            <path d="M4 11a8 8 0 0116 0v5a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2a2 2 0 012-2h2.5" strokeLinecap="round" />
+            <path d="M8 11V9a4 4 0 018 0v2" strokeLinecap="round" />
+          </svg>
+          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" aria-hidden />
+        </button>
       </div>
     </>
   );
