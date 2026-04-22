@@ -31,6 +31,14 @@ async function main() {
   const health = await j("/api/health");
   if (!health.ok) fail(`/api/health → ${health.status}`);
 
+  const chat = await j("/api/chat", {
+    method: "POST",
+    body: JSON.stringify({ message: "hi", locale: "en" }),
+  });
+  if (!chat.ok || typeof chat.data?.reply !== "string") {
+    fail(`POST /api/chat → ${chat.status}`);
+  }
+
   const cats = await j("/api/categories");
   if (!cats.ok || !Array.isArray(cats.data?.categories)) fail("GET /api/categories");
 
@@ -66,7 +74,9 @@ async function main() {
   const users = await j("/api/admin/users", { headers: auth });
   if (!users.ok || !Array.isArray(users.data?.users)) fail("GET /api/admin/users");
 
-  console.log("OK: health, public categories, admin login, stats, categories, brands, products, users");
+  console.log(
+    "OK: health, chat, public categories, admin login, stats, categories, brands, products, users"
+  );
   process.exit(0);
 }
 

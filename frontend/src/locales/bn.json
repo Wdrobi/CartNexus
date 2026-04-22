@@ -30,6 +30,12 @@
     "userMenuAddresses": "ঠিকানা",
     "userMenuSettings": "সেটিংস"
   },
+  "notFound": {
+    "title": "পেজ পাওয়া যায়নি",
+    "body": "এই ঠিকানাটি নেই বা সরানো হয়েছে। হোম বা শপে যান।",
+    "home": "হোম",
+    "shop": "শপ"
+  },
   "chat": {
     "title": "CartNexus সহায়ক",
     "subtitle": "পণ্য · স্টোর তথ্য · ডেলিভারি",

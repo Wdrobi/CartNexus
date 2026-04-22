@@ -12,7 +12,7 @@ function pickLang(lang, en, bn) {
 }
 
 /** Auto-advance interval (both hero images required in admin). Hover pause only when interval is slower. */
-const AUTO_MS = 50;
+const AUTO_MS = 3000;
 
 /** Crossfade duration — must stay below interval so slides visibly swap (was stuck when fade > interval). */
 function fadeDurationMs(reduceMotion, intervalMs) {

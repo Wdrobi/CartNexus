@@ -30,6 +30,12 @@
     "userMenuAddresses": "Addresses",
     "userMenuSettings": "Settings"
   },
+  "notFound": {
+    "title": "Page not found",
+    "body": "That URL doesn’t exist or was moved. Try home or the shop.",
+    "home": "Home",
+    "shop": "Shop"
+  },
   "chat": {
     "title": "CartNexus Assistant",
     "subtitle": "Products · store info · shipping",

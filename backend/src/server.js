@@ -82,7 +82,7 @@ app.use((_req, res) => {
 const server = http.createServer(app);
 attachAdminWebSocket(server);
 
-server.listen(PORT, () => {
-  console.log(`CartNexus API http://localhost:${PORT}`);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`CartNexus API http://localhost:${PORT} (LAN: use this PC's IPv4 + port)`);
   console.log(`Admin WebSocket ws://localhost:${PORT}/ws/admin`);
 });

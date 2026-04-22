@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import DocumentLang from "./components/DocumentLang.jsx";
 import RequireAuth from "./components/RequireAuth.jsx";
 import HomePage from "./pages/HomePage.jsx";
@@ -42,6 +42,7 @@ import AccountProfile from "./pages/account/AccountProfile.jsx";
 import AccountAddresses from "./pages/account/AccountAddresses.jsx";
 import AccountOrders from "./pages/account/AccountOrders.jsx";
 import StoreChatWidget from "./components/StoreChatWidget.jsx";
+import NotFoundPage from "./pages/NotFoundPage.jsx";
 
 export default function App() {
   return (
@@ -73,6 +74,7 @@ export default function App() {
             <Route path="orders" element={<AccountOrders />} />
             <Route path="profile" element={<AccountProfile />} />
             <Route path="addresses" element={<AccountAddresses />} />
+            <Route path="*" element={<Navigate to="/account" replace />} />
           </Route>
         </Route>
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -91,8 +93,10 @@ export default function App() {
             <Route path="newsletter-subscribers" element={<AdminNewsletterSubscribers />} />
             <Route path="support/:pageKey" element={<AdminCmsPageEditor />} />
             <Route path="store-settings" element={<AdminStoreSettings />} />
+            <Route path="*" element={<Navigate to="/admin" replace />} />
           </Route>
         </Route>
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <StoreChatWidget />
     </div>
