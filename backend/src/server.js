@@ -21,6 +21,7 @@ import ordersRouter from "./routes/orders.js";
 import blogRouter from "./routes/blog.js";
 import cmsPagesRouter from "./routes/cmsPages.js";
 import storeSettingsRouter from "./routes/storeSettings.js";
+import chatRouter from "./routes/chat.js";
 import { attachAdminWebSocket } from "./realtime/adminWs.js";
 
 dotenv.config();
@@ -71,6 +72,7 @@ app.use("/api/orders", ordersRouter);
 app.use("/api/blog", blogRouter);
 app.use("/api/cms", cmsPagesRouter);
 app.use("/api", storeSettingsRouter);
+app.use("/api/chat", chatRouter);
 app.use("/api/admin", requireAdmin, adminRouter);
 
 app.use((_req, res) => {

@@ -30,6 +30,17 @@
     "userMenuAddresses": "Addresses",
     "userMenuSettings": "Settings"
   },
+  "chat": {
+    "title": "CartNexus Assistant",
+    "subtitle": "Products · store info · shipping",
+    "open": "Open chat assistant",
+    "close": "Close chat",
+    "placeholder": "Ask about a product, delivery, or contact…",
+    "send": "Send",
+    "intro": "Hi — I’m your CartNexus assistant. Chat with me like a teammate: say hi, ask how we work, or get help finding products, prices, delivery, and contact info — in English or Bangla.",
+    "error": "Something went wrong. Please try again in a moment.",
+    "typing": "Thinking…"
+  },
   "customerAuth": {
     "backHome": "Back to home",
     "visualQuoteLogin": "Elevate your everyday — sharp fits, solid footwear, and grooming that keeps up with your routine.",

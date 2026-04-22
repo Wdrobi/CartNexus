@@ -41,6 +41,7 @@ import AccountDashboard from "./pages/account/AccountDashboard.jsx";
 import AccountProfile from "./pages/account/AccountProfile.jsx";
 import AccountAddresses from "./pages/account/AccountAddresses.jsx";
 import AccountOrders from "./pages/account/AccountOrders.jsx";
+import StoreChatWidget from "./components/StoreChatWidget.jsx";
 
 export default function App() {
   return (
@@ -93,6 +94,7 @@ export default function App() {
           </Route>
         </Route>
       </Routes>
+      <StoreChatWidget />
     </div>
   );
 }
