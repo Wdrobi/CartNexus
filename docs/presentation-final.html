@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CartNexus — Final Presentation</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="theme" />
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap");
+    :root {
+      --cn-teal: #14b8a6;
+      --cn-teal-dim: #0d9488;
+      --cn-ink: #f8fafc;
+      --cn-muted: #94a3b8;
+      --cn-card: rgba(255,255,255,0.06);
+    }
+    .reveal {
+      font-family: "DM Sans", system-ui, sans-serif;
+      font-size: 28px;
+    }
+    .reveal h1, .reveal h2, .reveal h3 {
+      font-family: Fraunces, Georgia, serif;
+      font-weight: 700;
+      color: var(--cn-ink);
+      text-transform: none;
+      letter-spacing: -0.02em;
+    }
+    .reveal .slides section {
+      text-align: left;
+      padding: 0 0.25em;
+    }
+    .reveal .slides section.center-slide {
+      text-align: center;
+    }
+    .reveal .slides section img.diagram {
+      max-height: 340px;
+      margin: 0.6rem auto;
+      display: block;
+      border-radius: 12px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+      background: #fff;
+    }
+    .reveal .slides section img.hero {
+      max-height: 280px;
+      margin: 0 auto 1rem;
+      border-radius: 14px;
+      box-shadow: 0 20px 50px rgba(20,184,166,0.25);
+    }
+    .logo-line {
+      font-size: 2.8rem;
+      font-weight: 800;
+      margin-bottom: 0.15em;
+    }
+    .logo-line span { color: var(--cn-teal); }
+    .tagline {
+      color: var(--cn-muted);
+      font-size: 0.88rem;
+      max-width: 36rem;
+      margin: 0.5rem auto 0;
+      line-height: 1.45;
+    }
+    .pill {
+      display: inline-block;
+      font-size: 0.45em;
+      font-weight: 600;
+      padding: 0.2em 0.65em;
+      border-radius: 999px;
+      background: rgba(20,184,166,0.2);
+      color: #5eead4;
+      vertical-align: middle;
+      margin-left: 0.35em;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      align-items: start;
+      font-size: 0.78em;
+    }
+    .reveal ul { margin-left: 0; }
+    .reveal li { margin-bottom: 0.4em; }
+    .small { font-size: 0.68em; color: var(--cn-muted); }
+    .accent { color: #5eead4; font-weight: 600; }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.65rem;
+      font-size: 0.72em;
+      margin-top: 0.75rem;
+    }
+    .toc-grid a {
+      display: block;
+      padding: 0.55rem 0.75rem;
+      border-radius: 10px;
+      background: var(--cn-card);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #e2e8f0 !important;
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .toc-grid a:hover {
+      background: rgba(20,184,166,0.15);
+      border-color: rgba(20,184,166,0.45);
+    }
+    .mermaid {
+      font-size: 18px !important;
+      margin: 0.5rem auto;
+    }
+    .demo-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin: 0.75rem 0;
+    }
+    .demo-tabs button {
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.65em;
+      padding: 0.45em 1em;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08);
+      color: #e2e8f0;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .demo-tabs button:hover,
+    .demo-tabs button.active {
+      background: rgba(20,184,166,0.25);
+      border-color: #14b8a6;
+      color: #fff;
+    }
+    .demo-panel {
+      display: none;
+      font-size: 0.72em;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      background: var(--cn-card);
+      border: 1px solid rgba(255,255,255,0.08);
+      line-height: 1.5;
+    }
+    .demo-panel.active { display: block; }
+    .kbd {
+      display: inline-block;
+      padding: 0.12em 0.45em;
+      border-radius: 6px;
+      font-size: 0.85em;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .footer-hint {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: rgba(148,163,184,0.85);
+      z-index: 20;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+      <!-- 0 -->
+      <section class="center-slide" data-background-gradient="linear-gradient(160deg, #0f172a 0%, #134e4a 55%, #042f2e 100%)">
+        <img class="hero" src="presentation-assets/hero-banner.svg" alt="CartNexus banner" width="920" height="307" />
+        <p class="tagline">Interactive deck · Use arrow keys or swipe · Press <span class="kbd">O</span> for overview · <span class="kbd">F</span> fullscreen</p>
+      </section>
+
+      <!-- 1 -->
+      <section>
+        <h2>Agenda</h2>
+        <p class="small">Jump to a section (links use Reveal routing).</p>
+        <div class="toc-grid">
+          <a href="#/2">Problem &amp; goals</a>
+          <a href="#/3">Solution &amp; architecture</a>
+          <a href="#/4">Request flow (diagram)</a>
+          <a href="#/5">Technology stack</a>
+          <a href="#/6">Storefront features</a>
+          <a href="#/7">Admin panel</a>
+          <a href="#/8">Quality &amp; security</a>
+          <a href="#/9">Live demo paths</a>
+          <a href="#/10">Challenges</a>
+          <a href="#/11">Next steps &amp; Q&amp;A</a>
+        </div>
+      </section>
+
+      <!-- 2 -->
+      <section>
+        <h2>Problem &amp; goals</h2>
+        <div class="two-col">
+          <div>
+            <h3 style="font-size: 1.1em;">Why CartNexus?</h3>
+            <ul>
+              <li>Retailers need both a <span class="accent">public shop</span> and <span class="accent">back-office tools</span> in one place.</li>
+              <li>Bilingual audience: <strong>Bangla</strong> + <strong>English</strong> across UI and content.</li>
+              <li>Operations teams need inventory, orders, and CMS without juggling many disconnected apps.</li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="font-size: 1.1em;">Project goals</h3>
+            <ul>
+              <li>End-to-end flows: browse → cart → checkout → order handling.</li>
+              <li>Role-based admin: catalog, inventory, CMS, subscribers, contact inbox.</li>
+              <li>Responsive UX and a maintainable React + REST architecture.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 -->
+      <section>
+        <h2>Solution overview</h2>
+        <p class="small">Single product: customer-facing storefront + secured admin, sharing one API and database.</p>
+        <img class="diagram" src="presentation-assets/architecture.svg" alt="Architecture: Browser, REST API, PostgreSQL" width="720" height="280" />
+        <p class="small" style="margin-top: 0.5rem;">Figure: logical layers (your deployment may vary).</p>
+      </section>
+
+      <!-- 4 -->
+      <section>
+        <h2>Request flow</h2>
+        <p class="small">Interactive Mermaid diagram — renders when you open this slide.</p>
+        <pre class="mermaid">
+flowchart TB
+  subgraph Client["Browser (React)"]
+    A[Shop routes] --> B[HTTP / JSON]
+    C[Admin routes] --> B
+  end
+  B --> D[Express REST API]
+  D --> E{Auth?}
+  E -->|JWT / session| F[Handlers]
+  E -->|Public| G[Catalog &amp; content]
+  F --> H[(PostgreSQL)]
+  G --> H
+        </pre>
+      </section>
+
+      <!-- 5 -->
+      <section>
+        <h2>Technology stack</h2>
+        <div class="two-col">
+          <div>
+            <ul>
+              <li><span class="accent">Frontend:</span> React 18, React Router, Vite, Tailwind-style utility CSS, i18next (EN/BN).</li>
+              <li><span class="accent">Backend:</span> Node.js, Express, REST JSON APIs.</li>
+              <li><span class="accent">Data:</span> PostgreSQL (products, orders, users, CMS, subscribers).</li>
+            </ul>
+          </div>
+          <div>
+            <ul>
+              <li><span class="accent">Auth:</span> JWT for admin; customer auth for account area.</li>
+              <li><span class="accent">Content:</span> Rich text editors for blog &amp; legal pages.</li>
+              <li><span class="accent">Tooling:</span> Git, environment-based config, production build pipeline.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6 -->
+      <section>
+        <h2>Storefront</h2>
+        <img class="diagram" src="presentation-assets/user-journey.svg" alt="Customer journey diagram" width="800" height="200" />
+        <ul style="font-size: 0.82em;">
+          <li>Home, categories, brands, product detail, cart, checkout, customer account basics.</li>
+          <li>Localized experience: language toggle, product copy in EN/BN where configured.</li>
+          <li>Footer &amp; contact driven from <span class="accent">store settings</span> (addresses, chat links, newsletter).</li>
+        </ul>
+      </section>
+
+      <!-- 7 -->
+      <section>
+        <h2>Admin panel</h2>
+        <ul style="font-size: 0.82em;">
+          <li><span class="accent">Commerce:</span> products, categories, brands, orders, inventory / stock views.</li>
+          <li><span class="accent">Content:</span> home hero, blog, CMS for terms / privacy / FAQs.</li>
+          <li><span class="accent">Audience:</span> newsletter subscribers, contact messages inbox.</li>
+          <li><span class="accent">Settings:</span> store contact &amp; chat URLs, theme-friendly admin UI (light/dark).</li>
+          <li><span class="accent">Discoverability:</span> global search &amp; activity-oriented notification feed.</li>
+        </ul>
+      </section>
+
+      <!-- 8 -->
+      <section>
+        <h2>Quality &amp; security</h2>
+        <ul style="font-size: 0.82em;">
+          <li>Protected admin routes; API authorization for management endpoints.</li>
+          <li>Input validation and structured error handling on critical writes.</li>
+          <li>Responsive layout; accessibility-minded components where applicable.</li>
+        </ul>
+        <pre class="mermaid" style="margin-top: 0.75rem;">
+sequenceDiagram
+  participant U as Admin user
+  participant W as Browser
+  participant API as REST API
+  participant DB as Database
+  U->>W: Action in panel
+  W->>API: Authorized request (Bearer)
+  API->>API: Verify token &amp; role
+  API->>DB: Query / transaction
+  DB-->>API: Result
+  API-->>W: JSON response
+  W-->>U: Updated UI
+        </pre>
+      </section>
+
+      <!-- 9 -->
+      <section>
+        <h2>Live demo (talk track)</h2>
+        <p class="small">Choose a path to rehearse — does not launch the app (outline only).</p>
+        <div class="demo-tabs" role="tablist" aria-label="Demo path">
+          <button type="button" class="active" data-tab="shop" role="tab" aria-selected="true">Shop path</button>
+          <button type="button" data-tab="admin" role="tab" aria-selected="false">Admin path</button>
+        </div>
+        <div id="demo-shop" class="demo-panel active" role="tabpanel">
+          <strong>Customer story (2–3 min)</strong><br />
+          Open home → pick category or brand → product page → add to cart → checkout (and order confirmation if shown). Mention language switch and mobile layout in one sentence.
+        </div>
+        <div id="demo-admin" class="demo-panel" role="tabpanel">
+          <strong>Operations story (2–3 min)</strong><br />
+          Log in as admin → dashboard → orders or inventory highlight → quick show of products/categories → one CMS or settings screen (contact / newsletter) → optional: notification bell.
+        </div>
+      </section>
+
+      <!-- 10 -->
+      <section>
+        <h2>Challenges &amp; outcomes</h2>
+        <ul style="font-size: 0.82em;">
+          <li>Balancing <span class="accent">rich admin UI</span> with <span class="accent">light mode readability</span> and consistent tokens.</li>
+          <li>Keeping <span class="accent">inventory</span> and product models accurate for variants and stock.</li>
+          <li>Shipping a <span class="accent">bilingual</span> surface without duplicating business logic.</li>
+        </ul>
+        <p class="small" style="margin-top: 0.75rem;">Outcome: a demonstrable full-stack product ready for academic review and further hardening.</p>
+      </section>
+
+      <!-- 11 -->
+      <section class="center-slide">
+        <h2>Next steps</h2>
+        <ul style="list-style: none; margin: 0 auto; max-width: 28rem; font-size: 0.85em;">
+          <li>Payment gateway &amp; production deployment hardening</li>
+          <li>Analytics dashboard and automated tests</li>
+          <li>Optional mobile app or PWA enhancements</li>
+        </ul>
+        <h3 style="margin-top: 1.5rem; font-size: 1.4em;">Thank you</h3>
+        <p class="tagline" style="margin-top: 0.75rem;">Questions?</p>
+        <p class="small">CartNexus · Final presentation</p>
+      </section>
+    </div>
+  </div>
+  <div class="footer-hint">Reveal.js · Mermaid diagrams · SVG figures in <code style="font-size:1em;">docs/presentation-assets/</code></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "dark",
+      themeVariables: {
+        primaryColor: "#134e4a",
+        primaryTextColor: "#f8fafc",
+        lineColor: "#5eead4",
+        secondaryColor: "#1e293b",
+        tertiaryColor: "#0f172a",
+      },
+    });
+
+    async function renderMermaidInCurrentSlide() {
+      const slide = document.querySelector(".reveal .slides section.present");
+      if (!slide) return;
+      const nodes = slide.querySelectorAll(".mermaid:not([data-processed])");
+      if (!nodes.length) return;
+      try {
+        await mermaid.run({ nodes: Array.from(nodes) });
+        nodes.forEach((n) => n.setAttribute("data-processed", "true"));
+      } catch (e) {
+        console.warn("Mermaid:", e);
+      }
+    }
+
+    Reveal.initialize({
+      hash: true,
+      slideNumber: "c/t",
+      transition: "slide",
+      backgroundTransition: "fade",
+      width: 1280,
+      height: 720,
+      margin: 0.08,
+    }).then(async () => {
+      await renderMermaidInCurrentSlide();
+      Reveal.on("slidechanged", renderMermaidInCurrentSlide);
+    });
+
+    /* Interactive demo tabs */
+    (function () {
+      var tabs = document.querySelectorAll(".demo-tabs button");
+      var panels = {
+        shop: document.getElementById("demo-shop"),
+        admin: document.getElementById("demo-admin"),
+      };
+      tabs.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var key = btn.getAttribute("data-tab");
+          tabs.forEach(function (t) {
+            t.classList.toggle("active", t === btn);
+            t.setAttribute("aria-selected", t === btn ? "true" : "false");
+          });
+          Object.keys(panels).forEach(function (k) {
+            var on = k === key;
+            if (panels[k]) panels[k].classList.toggle("active", on);
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

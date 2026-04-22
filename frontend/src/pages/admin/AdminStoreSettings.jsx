@@ -177,7 +177,7 @@ export default function AdminStoreSettings() {
               })}
             </div>
             <div className="mt-6 grid gap-6 sm:grid-cols-2">
-              {field("contactPhone", t("admin.storeSettings.phone"), t("admin.storeSettings.phoneHint"))}
+              {field("contactPhone", t("admin.storeSettings.phone"), "")}
               {field("contactEmail", t("admin.storeSettings.email"), "", { type: "email" })}
             </div>
             <div className="mt-6 grid gap-6 sm:grid-cols-2">

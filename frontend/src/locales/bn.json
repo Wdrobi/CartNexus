@@ -827,6 +827,40 @@
     "backSite": "সাইট দেখুন",
     "backSiteKicker": "স্টোর",
     "navSectionHint": "বিভাগ",
+    "topBar": {
+      "openMenu": "মেনু খুলুন",
+      "closeMenu": "মেনু বন্ধ করুন",
+      "searchPlaceholder": "খুঁজুন…",
+      "searchHint": "দ্রুত সার্চ শিগগির আসবে।",
+      "notifications": "নোটিফিকেশন",
+      "quickApps": "ড্যাশবোর্ড হোম",
+      "themeLight": "লাইট থিমে যান",
+      "themeDark": "ডার্ক থিমে যান",
+      "fullscreen": "পূর্ণস্ক্রিন",
+      "guest": "অ্যাডমিন",
+      "roleAdmin": "অ্যাডমিনিস্ট্রেটর",
+      "roleUser": "স্টাফ"
+    },
+    "search": {
+      "loading": "খোঁজা হচ্ছে…",
+      "sectionPages": "পেজ",
+      "sectionDirectory": "ক্যাটালগ ও রেকর্ড",
+      "noResults": "কিছু মেলেনি।",
+      "footerHint": "পণ্য, অর্ডার, ইউজার, ক্যাটাগরি ও ব্র্যান্ড খুঁজতে কমপক্ষে ২টা অক্ষর লিখুন।",
+      "typeProduct": "পণ্য",
+      "typeUser": "ইউজার",
+      "typeCategory": "ক্যাটাগরি",
+      "typeBrand": "ব্র্যান্ড",
+      "orderLabel": "অর্ডার"
+    },
+    "notifications": {
+      "title": "আপডেট",
+      "loading": "লোড হচ্ছে…",
+      "empty": "সাম্প্রতিক কার্যকলাপ নেই।",
+      "orderTitle": "অর্ডার {{num}}",
+      "contactTitle": "যোগাযোগ বার্তা · {{email}}",
+      "newsletterTitle": "নিউজলেটার · {{email}}"
+    },
     "nav": {
       "dashboard": "ড্যাশবোর্ড",
       "orders": "অর্ডার",

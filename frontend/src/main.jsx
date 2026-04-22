@@ -8,6 +8,7 @@ import { AuthProvider } from "./auth/AuthContext.jsx";
 import { CartProvider } from "./cart/CartContext.jsx";
 import { StoreSettingsProvider } from "./context/StoreSettingsContext.jsx";
 import "./index.css";
+import "./styles/admin-light-overrides.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

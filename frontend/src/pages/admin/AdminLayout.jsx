@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../auth/AuthContext.jsx";
+import AdminTopNavbar from "./AdminTopNavbar.jsx";
+import { getAdminChrome, persistAdminTheme, readStoredAdminTheme } from "./adminChrome.js";
 
 const SIDEBAR_STORAGE_KEY = "cartnexus.admin.sidebar.sections.v1";
 
@@ -209,19 +211,19 @@ function IconChevronSection({ open, className }) {
   );
 }
 
-function CollapsibleNavSection({ sectionKey, title, open, onToggle, children }) {
+function CollapsibleNavSection({ sectionKey, title, open, onToggle, children, wrapClass, titleClass, headerBtnClass }) {
   const toggleLabel = open ? `${title} — collapse` : `${title} — expand`;
   return (
-    <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className={wrapClass}>
       <button
         type="button"
         onClick={() => onToggle(sectionKey)}
-        className="flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left transition hover:bg-white/[0.05]"
+        className={`flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left transition ${headerBtnClass}`}
         aria-expanded={open}
         aria-controls={`admin-nav-${sectionKey}`}
         aria-label={toggleLabel}
       >
-        <span className="select-none font-display text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">{title}</span>
+        <span className={`select-none font-display text-[10px] font-bold uppercase tracking-[0.22em] ${titleClass}`}>{title}</span>
         <IconChevronSection open={open} className="h-4 w-4 text-slate-500" />
       </button>
       <div
@@ -241,7 +243,29 @@ export default function AdminLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
 
+  const [theme, setTheme] = useState(readStoredAdminTheme);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sectionsOpen, setSectionsOpen] = useState(loadSidebarSections);
+
+  const isLight = theme === "light";
+  const chrome = useMemo(() => getAdminChrome(isLight), [isLight]);
+
+  useEffect(() => {
+    persistAdminTheme(theme);
+  }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    return () => document.documentElement.classList.remove("dark");
+  }, [theme]);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+  }, []);
 
   const toggleSection = useCallback((key) => {
     setSectionsOpen((prev) => {
@@ -262,47 +286,77 @@ export default function AdminLayout() {
     });
   }, [location.pathname]);
 
-  const itemClass = ({ isActive }) =>
-    `group relative flex items-center gap-3 rounded-xl border border-transparent py-2 pl-2.5 pr-2 text-sm font-medium transition-all duration-200 ${
-      isActive
-        ? "border-brand-500/35 bg-gradient-to-r from-brand-500/20 via-brand-500/[0.08] to-transparent text-white shadow-[0_0_24px_-4px_rgba(20,184,166,0.35),inset_0_0_0_1px_rgba(45,212,191,0.12)]"
-        : "text-slate-400 hover:border-white/[0.06] hover:bg-white/[0.05] hover:text-slate-100"
-    }`;
+  const itemClass = useCallback(
+    ({ isActive }) =>
+      `group relative flex items-center gap-3 rounded-xl border border-transparent py-2 pl-2.5 pr-2 text-sm font-medium transition-all duration-200 ${
+        isActive ? chrome.itemActive : chrome.itemIdle
+      }`,
+    [chrome]
+  );
 
-  const iconWrap = (isActive) =>
-    `relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
-      isActive
-        ? "bg-brand-500/25 text-brand-100 shadow-inner ring-1 ring-brand-400/30"
-        : "bg-white/[0.05] text-slate-500 ring-1 ring-white/[0.04] group-hover:bg-white/[0.09] group-hover:text-slate-300 group-hover:ring-white/[0.08]"
-    }`;
+  const iconWrap = useCallback(
+    (isActive) =>
+      `relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
+        isActive ? chrome.iconActive : chrome.iconIdle
+      }`,
+    [chrome]
+  );
+
+  const sectionPass = useMemo(
+    () => ({
+      wrapClass: chrome.collapsibleWrap,
+      titleClass: chrome.collapsibleTitle,
+      headerBtnClass: chrome.collapsibleBtn,
+    }),
+    [chrome]
+  );
 
   const activeSection = useMemo(() => inferActiveSection(location.pathname), [location.pathname]);
 
   return (
-    <div className="min-h-dvh bg-[#070a12] text-slate-100">
+    <div className={chrome.shell}>
+      {mobileNavOpen ? (
+        <button
+          type="button"
+          className={`fixed inset-0 z-40 lg:hidden ${chrome.mobileOverlay}`}
+          aria-label={t("admin.topBar.closeMenu")}
+          onClick={() => setMobileNavOpen(false)}
+        />
+      ) : null}
+
       <div className="flex min-h-dvh flex-col lg:flex-row">
-        <aside className="relative flex shrink-0 flex-col overflow-hidden border-b border-white/[0.07] bg-gradient-to-b from-[#121a2e] via-[#0e1424] to-[#0a0f1c] lg:sticky lg:top-0 lg:z-20 lg:h-dvh lg:max-h-dvh lg:w-[19rem] lg:max-w-[19rem] lg:self-start lg:border-b-0 lg:border-r lg:border-white/[0.07] lg:shadow-[inset_-1px_0_0_rgba(45,212,191,0.07)]">
+        <aside
+          className={`${chrome.aside} fixed inset-y-0 left-0 z-50 flex w-[min(19rem,calc(100vw-1rem))] max-w-[100vw] transition-transform duration-200 ease-out lg:static lg:z-auto lg:flex lg:w-[19rem] lg:max-w-[19rem] lg:translate-x-0 ${mobileNavOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:shadow-none"}`}
+        >
           <div
-            className="pointer-events-none absolute -right-24 top-1/4 h-48 w-48 rounded-full bg-brand-500/10 blur-3xl"
+            className={`pointer-events-none absolute -right-24 top-1/4 h-48 w-48 rounded-full bg-brand-500/10 blur-3xl ${chrome.blurBlob}`}
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute -left-16 bottom-20 h-36 w-36 rounded-full bg-teal-600/10 blur-3xl"
+            className={`pointer-events-none absolute -left-16 bottom-20 h-36 w-36 rounded-full bg-teal-600/10 blur-3xl ${chrome.blurBlob}`}
             aria-hidden
           />
 
           <div className="relative flex max-h-[min(100dvh,100vh)] min-h-0 flex-col px-3 py-4 sm:px-4 lg:h-full lg:max-h-none lg:flex-1 lg:px-4 lg:py-7">
-            <div className="group rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.07] to-white/[0.02] p-3 shadow-lg shadow-black/30 ring-1 ring-white/[0.06] transition hover:border-brand-500/25 hover:shadow-brand-900/20">
+            <div className={chrome.logoCard}>
               <div className="flex items-start gap-3">
                 <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 via-brand-600 to-teal-700 text-sm font-bold text-white shadow-lg shadow-brand-950/50 ring-2 ring-white/10 transition group-hover:scale-[1.02]">
                   CN
-                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#121a2e]" title="Live" />
+                  <span
+                    className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ${chrome.liveDotRing}`}
+                    title="Live"
+                  />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-display text-base font-semibold leading-tight tracking-tight text-white">
-                    Cart<span className="bg-gradient-to-r from-brand-300 to-brand-500 bg-clip-text text-transparent">Nexus</span>
+                    Cart
+                    <span className="bg-gradient-to-r from-brand-300 to-brand-500 bg-clip-text text-transparent">
+                      Nexus
+                    </span>
                   </p>
-                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-300/90">{t("admin.panel")}</p>
+                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-300/90">
+                    {t("admin.panel")}
+                  </p>
                   {user ? (
                     <p className="mt-2 truncate text-xs text-slate-400" title={user.email}>
                       {user.name}
@@ -313,17 +367,18 @@ export default function AdminLayout() {
             </div>
 
             {activeSection && SECTION_TITLE_I18N[activeSection] ? (
-              <p className="mt-3 px-1 text-[11px] text-slate-500">
-                <span className="text-slate-600">{t("admin.navSectionHint")}:</span>{" "}
-                <span className="font-medium text-brand-200/90">{t(SECTION_TITLE_I18N[activeSection])}</span>
+              <p className={`mt-3 px-1 text-[11px] ${chrome.sectionHint}`}>
+                <span className={chrome.sectionHintLabel}>{t("admin.navSectionHint")}:</span>{" "}
+                <span className={`font-medium ${chrome.sectionHintValue}`}>{t(SECTION_TITLE_I18N[activeSection])}</span>
               </p>
             ) : null}
 
             <nav
-              className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pb-2 pt-1 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent] lg:mt-4"
+              className={`mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pb-2 pt-1 [scrollbar-width:thin] lg:mt-4 ${chrome.navScroll}`}
               aria-label={t("admin.panel")}
             >
               <CollapsibleNavSection
+                {...sectionPass}
                 sectionKey="main"
                 title={t("admin.nav.groupMain")}
                 open={sectionsOpen.main}
@@ -342,6 +397,7 @@ export default function AdminLayout() {
               </CollapsibleNavSection>
 
               <CollapsibleNavSection
+                {...sectionPass}
                 sectionKey="store"
                 title={t("admin.nav.groupStore")}
                 open={sectionsOpen.store}
@@ -400,6 +456,7 @@ export default function AdminLayout() {
               </CollapsibleNavSection>
 
               <CollapsibleNavSection
+                {...sectionPass}
                 sectionKey="content"
                 title={t("admin.nav.groupContent")}
                 open={sectionsOpen.content}
@@ -428,6 +485,7 @@ export default function AdminLayout() {
               </CollapsibleNavSection>
 
               <CollapsibleNavSection
+                {...sectionPass}
                 sectionKey="ops"
                 title={t("admin.nav.groupOps")}
                 open={sectionsOpen.ops}
@@ -446,6 +504,7 @@ export default function AdminLayout() {
               </CollapsibleNavSection>
 
               <CollapsibleNavSection
+                {...sectionPass}
                 sectionKey="support"
                 title={t("admin.nav.groupSupport")}
                 open={sectionsOpen.support}
@@ -504,6 +563,7 @@ export default function AdminLayout() {
               </CollapsibleNavSection>
 
               <CollapsibleNavSection
+                {...sectionPass}
                 sectionKey="settings"
                 title={t("admin.nav.groupSettings")}
                 open={sectionsOpen.settings}
@@ -522,33 +582,42 @@ export default function AdminLayout() {
               </CollapsibleNavSection>
             </nav>
 
-            <div className="mt-auto flex flex-shrink-0 flex-col gap-2 border-t border-white/[0.07] pt-4">
+            <div className={`mt-auto flex flex-shrink-0 flex-col gap-2 border-t pt-4 ${chrome.bottomBar}`}>
               <button
                 type="button"
                 onClick={() => logout()}
-                className="flex w-full items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:border-red-500/40 hover:bg-red-500/[0.12] hover:text-red-200"
+                className={`flex w-full items-center justify-center rounded-xl border px-3 py-2.5 text-sm font-medium transition ${chrome.logoutBtn}`}
               >
                 {t("auth.logout")}
               </button>
               <NavLink
                 to="/"
-                className="group relative flex w-full items-center justify-center overflow-hidden rounded-xl border border-brand-500/40 bg-gradient-to-r from-brand-500/[0.18] via-teal-600/[0.12] to-slate-900/40 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_-12px_rgba(20,184,166,0.45)] ring-1 ring-brand-400/15 transition duration-200 hover:border-brand-300/55 hover:from-brand-500/28 hover:via-teal-500/[0.18] hover:to-slate-900/55 hover:shadow-[0_12px_32px_-12px_rgba(45,212,191,0.5)] hover:ring-brand-300/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0e1424]"
+                className={`group relative flex w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-r px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_-12px_rgba(20,184,166,0.45)] transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/50 focus-visible:ring-offset-2 ${chrome.viewSiteLink}`}
               >
                 <span
                   className="pointer-events-none absolute -right-6 -top-10 h-20 w-20 rounded-full bg-brand-400/12 blur-2xl transition-opacity group-hover:opacity-90"
                   aria-hidden
                 />
                 <span className="relative z-[1] inline-flex max-w-full items-center justify-center gap-2 text-sm font-medium">
-                  <IconViewSite className="h-[1.125rem] w-[1.125rem] shrink-0 text-brand-200 transition group-hover:text-white" />
-                  <span className="truncate text-brand-50 group-hover:text-white">{t("admin.backSite")}</span>
+                  <IconViewSite className={`h-[1.125rem] w-[1.125rem] shrink-0 transition ${chrome.viewSiteIcon}`} />
+                  <span className={`truncate ${chrome.viewSiteText}`}>{t("admin.backSite")}</span>
                 </span>
               </NavLink>
             </div>
           </div>
         </aside>
 
-        <div className="relative min-w-0 flex-1 border-l border-transparent bg-[#070a14] px-[20px] py-4 sm:py-6 lg:rounded-tl-3xl lg:border-l-white/[0.06] lg:bg-ink-950/95 lg:py-8 lg:shadow-[inset_1px_0_0_rgba(255,255,255,0.05)]">
-          <Outlet />
+        <div className="flex min-h-dvh min-w-0 flex-1 flex-col lg:min-h-0">
+          <AdminTopNavbar
+            chrome={chrome}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onMenuClick={() => setMobileNavOpen(true)}
+            user={user}
+          />
+          <div className={`relative min-w-0 flex-1 overflow-auto ${chrome.main} ${isLight ? "admin-app-light" : ""}`}>
+            <Outlet />
+          </div>
         </div>
       </div>
     </div>

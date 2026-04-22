@@ -827,6 +827,40 @@
     "backSite": "View site",
     "backSiteKicker": "Storefront",
     "navSectionHint": "Section",
+    "topBar": {
+      "openMenu": "Open navigation menu",
+      "closeMenu": "Close menu",
+      "searchPlaceholder": "Search…",
+      "searchHint": "Quick search will be available in a future update.",
+      "notifications": "Notifications",
+      "quickApps": "Dashboard home",
+      "themeLight": "Switch to light theme",
+      "themeDark": "Switch to dark theme",
+      "fullscreen": "Fullscreen",
+      "guest": "Admin",
+      "roleAdmin": "Administrator",
+      "roleUser": "Staff"
+    },
+    "search": {
+      "loading": "Searching…",
+      "sectionPages": "Pages",
+      "sectionDirectory": "Catalog & records",
+      "noResults": "No matches.",
+      "footerHint": "Type at least 2 letters to search products, orders, users, categories, and brands.",
+      "typeProduct": "Product",
+      "typeUser": "User",
+      "typeCategory": "Category",
+      "typeBrand": "Brand",
+      "orderLabel": "Order"
+    },
+    "notifications": {
+      "title": "Updates",
+      "loading": "Loading…",
+      "empty": "No recent activity.",
+      "orderTitle": "Order {{num}}",
+      "contactTitle": "Contact message · {{email}}",
+      "newsletterTitle": "Newsletter signup · {{email}}"
+    },
     "nav": {
       "dashboard": "Dashboard",
       "orders": "Orders",

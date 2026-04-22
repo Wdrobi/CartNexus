@@ -1,0 +1,301 @@
+/**
+ * When admin main content uses light canvas but pages still ship dark-theme Tailwind
+ * utilities (text-white, bg-black/20, …), these overrides restore readable contrast.
+ * Applied only on the scrollable main column (`.admin-app-light`), so the left sidebar
+ * stays visually dark without extra resets.
+ */
+
+.admin-app-light .text-white:not(.admin-keep-white) {
+  color: rgb(15 23 42) !important;
+}
+
+.admin-app-light .text-slate-100:not(.admin-keep-white) {
+  color: rgb(30 41 59) !important;
+}
+
+.admin-app-light .text-slate-200:not(.admin-keep-white) {
+  color: rgb(51 65 85) !important;
+}
+
+.admin-app-light .text-slate-300:not(.admin-keep-white) {
+  color: rgb(71 85 105) !important;
+}
+
+.admin-app-light .text-slate-400:not(.admin-keep-muted) {
+  color: rgb(100 116 139) !important;
+}
+
+.admin-app-light .text-slate-500:not(.admin-keep-muted) {
+  color: rgb(100 116 139) !important;
+}
+
+/* Accent text written for dark surfaces (mint / cyan on white was illegible) */
+.admin-app-light .text-brand-100,
+.admin-app-light .text-brand-100\/95 {
+  color: rgb(17 94 89) !important;
+}
+
+.admin-app-light .text-brand-200,
+.admin-app-light .text-brand-200\/80,
+.admin-app-light .text-brand-200\/90 {
+  color: rgb(15 118 110) !important;
+}
+
+.admin-app-light .text-brand-300,
+.admin-app-light .text-brand-300\/80 {
+  color: rgb(13 148 136) !important;
+}
+
+.admin-app-light .text-brand-400 {
+  color: rgb(13 148 136) !important;
+}
+
+.admin-app-light .hover\:text-brand-300:hover {
+  color: rgb(13 148 136) !important;
+}
+
+.admin-app-light .hover\:text-brand-200:hover {
+  color: rgb(15 118 110) !important;
+}
+
+.admin-app-light .text-teal-200,
+.admin-app-light .text-teal-300 {
+  color: rgb(15 118 110) !important;
+}
+
+.admin-app-light .text-emerald-100,
+.admin-app-light .text-emerald-200,
+.admin-app-light .text-emerald-300 {
+  color: rgb(6 95 70) !important;
+}
+
+.admin-app-light .text-emerald-400 {
+  color: rgb(5 122 85) !important;
+}
+
+.admin-app-light .text-cyan-300,
+.admin-app-light .text-cyan-400 {
+  color: rgb(14 116 144) !important;
+}
+
+.admin-app-light .text-rose-100,
+.admin-app-light .text-rose-200,
+.admin-app-light .text-rose-200\/90,
+.admin-app-light .text-rose-300,
+.admin-app-light .text-rose-300\/80,
+.admin-app-light .text-rose-300\/90 {
+  color: rgb(159 18 57) !important;
+}
+
+.admin-app-light .text-rose-400 {
+  color: rgb(190 18 60) !important;
+}
+
+.admin-app-light .text-amber-50,
+.admin-app-light .text-amber-100,
+.admin-app-light .text-amber-100\/95 {
+  color: rgb(120 53 15) !important;
+}
+
+.admin-app-light .text-amber-200,
+.admin-app-light .text-amber-200\/80,
+.admin-app-light .text-amber-200\/90 {
+  color: rgb(146 64 14) !important;
+}
+
+.admin-app-light .text-amber-300,
+.admin-app-light .text-amber-300\/90 {
+  color: rgb(180 83 9) !important;
+}
+
+.admin-app-light .text-amber-400 {
+  color: rgb(180 83 9) !important;
+}
+
+.admin-app-light .text-red-200 {
+  color: rgb(185 28 28) !important;
+}
+
+.admin-app-light .text-red-300 {
+  color: rgb(153 27 27) !important;
+}
+
+.admin-app-light code.text-amber-50 {
+  color: rgb(69 26 3) !important;
+}
+
+/* Primary actions / brand surfaces — keep light text (not on /xx opacity fills) */
+.admin-app-light button.admin-keep-white,
+.admin-app-light a.admin-keep-white,
+.admin-app-light .admin-keep-white.text-white,
+.admin-app-light [class*="from-brand-600"].text-white,
+.admin-app-light [class*="from-brand-500"].text-white,
+.admin-app-light [class*="bg-brand-600"].text-white:not([class*="bg-brand-600/"]),
+.admin-app-light [class*="bg-brand-500"].text-white:not([class*="bg-brand-500/"]),
+.admin-app-light [class*="to-brand-500"].text-white,
+.admin-app-light [class*="bg-gradient"].text-white {
+  color: rgb(255 255 255) !important;
+}
+
+.admin-app-light .border-white\/5,
+.admin-app-light .border-white\/10,
+.admin-app-light .border-white\/15 {
+  border-color: rgb(226 232 240 / 0.95) !important;
+}
+
+.admin-app-light .border-white\/20 {
+  border-color: rgb(203 213 225) !important;
+}
+
+.admin-app-light .border-b.border-white\/10 {
+  border-bottom-color: rgb(203 213 225) !important;
+}
+
+.admin-app-light .bg-black\/20 {
+  background-color: rgb(255 255 255 / 0.97) !important;
+}
+
+.admin-app-light .bg-black\/30 {
+  background-color: rgb(248 250 252) !important;
+}
+
+.admin-app-light .bg-black\/40 {
+  background-color: rgb(241 245 249) !important;
+}
+
+.admin-app-light .bg-black\/75 {
+  background-color: rgb(15 23 42 / 0.45) !important;
+}
+
+/* Store settings & CMS dark editor panels */
+.admin-app-light [class*="0c1222"] {
+  background-color: rgb(255 255 255) !important;
+  border-color: rgb(226 232 240) !important;
+  color: rgb(15 23 42) !important;
+}
+
+.admin-app-light .backdrop-blur-md {
+  backdrop-filter: blur(8px);
+}
+
+/* Chart / card panels */
+.admin-app-light .bg-white\/5,
+.admin-app-light .bg-white\/10 {
+  background-color: rgb(255 255 255 / 0.94) !important;
+}
+
+.admin-app-light .bg-white\/\[0\.03\] {
+  background-color: rgb(255 255 255) !important;
+}
+
+.admin-app-light .bg-white\/\[0\.04\] {
+  background-color: rgb(248 250 252) !important;
+}
+
+/* Full-bleed “ink” / slate canvases (dashboard, modals, inputs) */
+.admin-app-light .bg-ink-950 {
+  background-color: rgb(248 250 252) !important;
+}
+
+.admin-app-light .bg-ink-900 {
+  background-color: rgb(255 255 255) !important;
+}
+
+.admin-app-light .bg-ink-900\/85 {
+  background-color: rgb(255 255 255 / 0.94) !important;
+}
+
+.admin-app-light .bg-slate-950 {
+  background-color: rgb(248 250 252) !important;
+}
+
+.admin-app-light .bg-black\/25 {
+  background-color: rgb(248 250 252) !important;
+}
+
+/* Modal overlays — softer dim on light canvas */
+.admin-app-light .bg-black\/70 {
+  background-color: rgb(15 23 42 / 0.38) !important;
+}
+
+/* Arbitrary opacity borders used on dark tables */
+.admin-app-light .border-white\/\[0\.06\] {
+  border-color: rgb(226 232 240) !important;
+}
+
+.admin-app-light .border-white\/\[0\.08\] {
+  border-color: rgb(226 232 240) !important;
+}
+
+.admin-app-light .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgb(226 232 240) !important;
+}
+
+.admin-app-light .hover\:bg-white\/5:hover {
+  background-color: rgb(248 250 252 / 0.98) !important;
+}
+
+.admin-app-light .hover\:bg-white\/10:hover {
+  background-color: rgb(241 245 249) !important;
+}
+
+.admin-app-light .hover\:border-brand-300\/40:hover {
+  border-color: rgb(94 234 212 / 0.45) !important;
+}
+
+/* Checkbox / control rings */
+.admin-app-light .ring-white\/20 {
+  --tw-ring-color: rgb(148 163 184 / 0.55) !important;
+}
+
+.admin-app-light .border-white\/25 {
+  border-color: rgb(203 213 225) !important;
+}
+
+/* Visible placeholders on white inputs */
+.admin-app-light input::placeholder,
+.admin-app-light textarea::placeholder {
+  color: rgb(100 116 139) !important;
+  opacity: 1 !important;
+}
+
+/* Ghost / outline primary buttons — stronger fill on light canvas */
+.admin-app-light button[class*="border-brand-500"][class*="bg-brand-500/10"],
+.admin-app-light button[class*="bg-brand-500/10"][class*="text-brand"] {
+  background-color: rgb(20 184 166 / 0.16) !important;
+  border-color: rgb(13 148 136 / 0.45) !important;
+}
+
+/* KPI / summary strips that used gradient glass on dark */
+.admin-app-light [class*="bg-gradient-to-br"][class*="from-white/"] {
+  background-image: none !important;
+  background-color: rgb(255 255 255) !important;
+  border-color: rgb(203 213 225) !important;
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.06),
+    0 6px 20px rgb(15 23 42 / 0.06) !important;
+}
+
+/* Primary bordered panels — depth vs page bg */
+.admin-app-light .rounded-2xl.border.border-white\/10:not(.rounded-full),
+.admin-app-light .rounded-xl.border.border-white\/10:not(.rounded-full),
+.admin-app-light .rounded-2xl.border.border-white\/\[0\.08\]:not(.rounded-full) {
+  border-color: rgb(203 213 225) !important;
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.05),
+    0 8px 28px rgb(15 23 42 / 0.07) !important;
+}
+
+.admin-app-light div.overflow-hidden.rounded-2xl.border {
+  border-color: rgb(203 213 225) !important;
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.05),
+    0 10px 32px rgb(15 23 42 / 0.08) !important;
+}
+
+.admin-app-light section.rounded-2xl.border {
+  border-color: rgb(203 213 225) !important;
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.05),
+    0 8px 24px rgb(15 23 42 / 0.06) !important;
+}
